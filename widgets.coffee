@@ -58,6 +58,8 @@ class Slider
         @setVal(ui.value)
         Widgets.compute()  # Superclass method
       change: (e, ui) =>  # Unused because responds to slide method
+      
+    @setVal @init
     
   initialize: -> @setVal @init
     

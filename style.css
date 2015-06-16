@@ -1,0 +1,67 @@
+/* Element styles */
+
+.slider-container {
+  margin-top: 5px;
+  margin-bottom: 15px;
+}
+
+.slider-prompt {
+  display: inline-block;
+  width: 90px;
+  /*padding-right: 5px;*/
+  text-align: right;
+}
+
+.mvc-slider {
+  display: inline-block;
+  width: 200px;
+  margin-left: 10px;
+}
+
+.slider-text {
+  display: inline-block;
+  cursor: default;
+}
+
+table.widget {
+  margin-bottom: 20px;
+}
+table.widget, th, td {
+  border: 1px solid black;
+  border-collapse: collapse;
+}
+th, td {
+  padding: 5px;
+  text-align: left;
+}
+
+.axisLabel {
+	position: absolute;
+	text-align: center;
+	font-size: 12px;
+}
+
+.xaxisLabel {
+	bottom: 2px;
+	left: 50%;
+	transform-origin: 0 0;
+	-o-transform-origin: 0 0;
+	-ms-transform-origin: 0 0;
+	-moz-transform-origin: 0 0;
+	-webkit-transform-origin: 0 0;
+}
+
+.yaxisLabel {
+	top: 50%;
+	left: 2px;
+	transform: rotate(-90deg);
+	-o-transform: rotate(-90deg);
+	-ms-transform: rotate(-90deg);
+	-moz-transform: rotate(-90deg);
+	-webkit-transform:  rotate(-90deg);
+	transform-origin: 0 0;
+	-o-transform-origin: 0 0;
+	-ms-transform-origin: 0 0;
+	-moz-transform-origin: 0 0;
+	-webkit-transform-origin: 0 0;
+}

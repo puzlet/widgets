@@ -29,6 +29,7 @@ class Widgets
       return unless data.url is @filename
       widget?.initialize?() for key, widget in @widgets
       Computation.init()
+      $.event.trigger "htmlOutputUpdated"
       
     @queueCompile 2000  # Hack to force compile for Gist source
       

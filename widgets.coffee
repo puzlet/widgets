@@ -78,7 +78,7 @@ class Table
   @initSpec: (id) -> """
     id: "#{id}"
     headings: ["Column 1", "Column 2"]
-    widths: ["100px", "100px"]
+    widths: [100, 100]
   """
   
   @layoutPreamble: "#{@handle} = (spec) -> new #{@api}(spec)"
@@ -131,7 +131,8 @@ class Plot
     xlabel: "x", ylabel: "y"
     # xaxis: {min: 0, max: 1}
     # yaxis: {min: 0, max: 1}
-    series: {color: "blue", lines: lineWidth: 1}
+    series: {lines: lineWidth: 1}
+    colors: ["red", "blue"]
     grid: {backgroundColor: "white"}
   """
   
@@ -168,9 +169,27 @@ class Plot
     params.series ?= {color: "#55f"}
     x = v[0]
     y = v[1]
-    $.plot @plot, [numeric.transpose([x, y])], params
+    
+    if y?.length and y[0].length?
+      nLines = y.length
+      d = []
+      for line in y
+        l = numeric.transpose([x, line])
+        d.push l
+    else
+      d = [numeric.transpose([x, y])]
+    #@plotSeries d
+    
+    #console.log "^^^^^^^^ d", v, nLines, d
+    
+    $.plot @plot, d, params
     @axesLabels = new AxesLabels @plot, params
     @axesLabels.position()
+    
+    #$.plot @plot, [numeric.transpose([x, y])], params
+    #@axesLabels = new AxesLabels @plot, params
+    #@axesLabels.position()
+    
     
 class AxesLabels
   

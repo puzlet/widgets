@@ -172,6 +172,14 @@ class Plot
     params = @spec
     params.series.shadowSize ?= 0
     params.series ?= {color: "#55f"}
+    
+    params.xaxis?.axisLabel = params.xlabel if params.xlabel
+    params.yaxis?.axisLabel = params.ylabel if params.ylabel
+    params.xaxis?.axisLabelUseCanvas ?= true
+    params.yaxis?.axisLabelUseCanvas ?= true
+    params.xaxis?.axisLabelPadding ?= 10
+    params.yaxis?.axisLabelPadding ?= 10
+    
     x = v[0]
     y = v[1]
     
@@ -185,8 +193,12 @@ class Plot
       d = [numeric.transpose([x, y])]
     
     $.plot @plot, d, params
-    @axesLabels = new AxesLabels @plot, params
-    @axesLabels.position()
+    
+    #xaxis: {min: 0, max: 1, axisLabel: "Orbit time (minutes)", axisLabelUseCanvas: true, axisLabelPadding: 10}
+    #yaxis: {min: 9100, max: 9500, axisLabel: "Orbit radius (km)", axisLabelUseCanvas: true, axisLabelPadding: 10}
+    
+    #@axesLabels = new AxesLabels @plot, params
+    #@axesLabels.position()
     
     #$.plot @plot, [numeric.transpose([x, y])], params
     #@axesLabels = new AxesLabels @plot, params

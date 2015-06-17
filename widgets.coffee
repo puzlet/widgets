@@ -173,6 +173,9 @@ class Plot
     params.series.shadowSize ?= 0
     params.series ?= {color: "#55f"}
     
+    params.xaxis ?= {}
+    params.yaxis ?= {}
+    
     params.xaxis?.axisLabel = params.xlabel if params.xlabel
     params.yaxis?.axisLabel = params.ylabel if params.ylabel
     params.xaxis?.axisLabelUseCanvas ?= true

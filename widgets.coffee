@@ -79,6 +79,7 @@ class Table
     id: "#{id}"
     headings: ["Column 1", "Column 2"]
     widths: [100, 100]
+    css: {margin: "0 auto"}
   """
   
   @layoutPreamble: "#{@handle} = (spec) -> new #{@api}(spec)"
@@ -90,11 +91,16 @@ class Table
   
   constructor: (@spec) ->
     
-    {@id, @headings, @widths} = @spec
+    {@id, @headings, @widths, @css} = @spec
     
     @table = $("#"+@id)
     @table.remove() if @table.length
-    @table = $ "<table>", id: @id, class: "widget"
+    @table = $ "<table>",
+      id: @id
+      class: "widget"
+    
+    if @css
+      @table.css @css
     
     Widgets.append @id, this, @table
     

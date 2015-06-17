@@ -141,6 +141,24 @@ class Layout
   @text: (t) -> @append t
 
 
+codeSections = ->
+  title = "Show/hide code"
+  comp = $ "#computation-code-section"
+  layout = $ "#layout-code-section"
+  
+  $("#computation-code-heading")
+    #.attr(title: title)
+    .click -> comp.toggle(500)
+  
+  $("#layout-code-heading")
+    #.attr(title: title)
+    .click -> layout.toggle(500)
+      
+  #comp.hide()
+  #layout.hide()
+
+codeSections()
+
 Widgets.initialize()
 
 # Export

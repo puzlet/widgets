@@ -91,7 +91,7 @@ class Table
   
   constructor: (@spec) ->
     
-    {@id, @headings, @widths, @css} = @spec
+    {@id, @headings, @widths, @colCss, @css} = @spec
     
     @table = $("#"+@id)
     @table.remove() if @table.length
@@ -109,22 +109,32 @@ class Table
   setVal: (v) ->
     @table.empty()
     
+    colGroup = $ "<colgroup>"
+    @table.append colGroup
+    for w, idx in @widths
+      css = @colCss?[idx] ? {}
+      css.width = w
+      col = $ "<col>", css: css # {width: w}
+      colGroup.append col
+    
     if @headings
       tr = $ "<tr>"
       @table.append tr
       for h, idx in @headings
-        w = @widths[idx]
-        tr.append "<th width='#{w}'>#{h}</th>"
+        #w = @widths[idx]
+        tr.append "<th>#{h}</th>"
+#        tr.append "<th width='#{w}'>#{h}</th>"
     
     row = []
     for x, idx in v[0]
       tr = $ "<tr>"
       @table.append tr
       for i in [0...v.length]
-        w = @widths[i]
+        #w = @widths[i]
         d = v[i][idx]
         val = if typeof d is "number" then @format(d) else d
-        tr.append "<td width='#{w}'>"+val+"</td>"
+        tr.append "<td>"+val+"</td>"
+#        tr.append "<td width='#{w}'>"+val+"</td>"
     @value = v
     
   format: (x) ->

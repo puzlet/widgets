@@ -102,18 +102,23 @@ class Table
     
   setVal: (v) ->
     @table.empty()
-    tr = $ "<tr>"
-    @table.append tr
-    for h, idx in @headings
-      w = @widths[idx]
-      tr.append "<th width='#{w}'>#{h}</th>"
+    
+    if @headings
+      tr = $ "<tr>"
+      @table.append tr
+      for h, idx in @headings
+        w = @widths[idx]
+        tr.append "<th width='#{w}'>#{h}</th>"
     
     row = []
     for x, idx in v[0]
       tr = $ "<tr>"
       @table.append tr
-      for i in [0...v.length] 
-        tr.append "<td>"+@format(v[i][idx])+"</td>"
+      for i in [0...v.length]
+        w = @widths[i]
+        d = v[i][idx]
+        val = if typeof d is "number" then @format(d) else d
+        tr.append "<td width='#{w}'>"+val+"</td>"
     @value = v
     
   format: (x) ->

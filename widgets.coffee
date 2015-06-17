@@ -178,9 +178,6 @@ class Plot
         d.push l
     else
       d = [numeric.transpose([x, y])]
-    #@plotSeries d
-    
-    #console.log "^^^^^^^^ d", v, nLines, d
     
     $.plot @plot, d, params
     @axesLabels = new AxesLabels @plot, params

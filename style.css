@@ -32,10 +32,11 @@ table.widget, th, td {
   font-size: 10pt;
 }
 th, td {
-  padding: 4px;
   text-align: center;
   line-height: 100%;
 }
+th {padding: 6px;}
+td {padding: 4px;}
 
 .axisLabel {
 	position: absolute;

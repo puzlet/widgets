@@ -28,8 +28,6 @@ class Slider extends Widget
   
   @initVal: 5
   
-  # id: "#{id}"
-  
   @initSpec: (id) -> """
     min: 0, max: 10, step: 0.1, init: #{Slider.initVal}
     prompt: "#{id}:"
@@ -49,15 +47,6 @@ class Slider extends Widget
   constructor: (@p1, @p2) ->
     
     super @p1, @p2
-    console.log "===========SPEC", @spec
-    
-    # if typeof @p1 is "string"
-    #  @id = @p1
-    #  @spec = @p2
-    #  @spec.id = @id
-    # else
-    #  @spec = @p1
-    #  @id = @spec.id
       
     {@min, @max, @step, @init, @prompt, @text} = @spec
     

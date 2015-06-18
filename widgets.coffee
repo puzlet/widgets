@@ -229,7 +229,88 @@ class Plot
     #$.plot @plot, [numeric.transpose([x, y])], params
     #@axesLabels = new AxesLabels @plot, params
     #@axesLabels.position()
+
+class Bar
+  
+  @handle: "bar"
+  @api: "$blab.Widgets.Registry.Bar"
+  
+  @initSpec: (id) -> """
+    id: "#{id}"
+    width: 300, height: 200
+    xlabel: "x", ylabel: "y"
+    xaxis: {minTickSize: 1}
+    # xaxis: {min: 0, max: 1}
+    # yaxis: {min: 0, max: 1}
+    series: {bars: {show: true}, stack:true}
+    # colors: ["red", "blue"]
+    grid: {backgroundColor: "white"}
+  """
+  
+  @layoutPreamble: "#{@handle} = (spec) -> new #{@api}(spec)"
+  
+  @computePreamble: "#{@handle} = (id, v...) ->\n  #{@api}.compute(id, v)\n  null"
+  
+  @compute: (id, v) ->
+    Widgets.fetch(Bar, id, v...)?.setVal(v)
+  
+  constructor: (@spec) ->
     
+    {@id, @width, @height, @xlabel, @ylabel} = @spec
+    
+    @plot = $("#"+@id)
+    @plot.remove() if @plot.length
+    @plot = $ "<div>",
+      id: @id
+      css:
+        width: @width ? 400
+        height: @height ? 200
+        
+    Widgets.append @id, this, @plot
+    
+  initialize: -> #@setVal @init
+    
+  setVal: (v) ->
+    @plot.empty()
+    @value = v
+    #@plot.text v
+    
+    params = @spec
+    params.series.shadowSize ?= 0
+    params.series ?= {color: "#55f"}
+    
+    params.xaxis ?= {}
+    params.yaxis ?= {}
+    
+    params.xaxis?.axisLabel = params.xlabel if params.xlabel
+    params.yaxis?.axisLabel = params.ylabel if params.ylabel
+    params.xaxis?.axisLabelUseCanvas ?= true
+    params.yaxis?.axisLabelUseCanvas ?= true
+    params.xaxis?.axisLabelPadding ?= 10
+    params.yaxis?.axisLabelPadding ?= 10
+    
+    lol = (u) -> # list of lists
+        if u[0].length?
+            z = u
+        else
+            z = []
+            z.push u
+        z
+
+    X = lol v[0]
+    Y = lol v[1]
+    L = lol v[2]
+
+    maxRows =  Math.max(X.length, Y.length)
+    d = []
+    for k in [0...maxRows]
+        xRow = Math.min(k,X.length-1)
+        yRow = Math.min(k,Y.length-1)
+        lRow = Math.min(k,L.length-1)
+        l = numeric.transpose([X[xRow], Y[yRow]])
+        d.push {"data": l, "label":L[lRow]}
+
+    $.plot @plot, d, params
     
 class AxesLabels
   
@@ -254,5 +335,5 @@ class AxesLabels
       marginTop: (@yaxisLabel.width() / 2 - 10) + "px"
 
 
-Widgets.register [Slider, Table, Plot]
+Widgets.register [Slider, Table, Plot, Bar]
 

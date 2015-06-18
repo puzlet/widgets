@@ -2,7 +2,26 @@
 
 Widgets = $blab.Widgets
 
-class Slider
+class Widget
+  
+  @layoutPreamble:
+    "#{@handle} = (id, spec) -> new #{@api}(id, spec)"
+    
+  @computePreamble:
+    "#{@handle} = (id) -> #{@api}.compute(id)"
+    
+  constructor: (@p1, @p2) ->
+    
+    if typeof @p1 is "string"
+      @id = @p1
+      @spec = @p2
+      @spec.id = @id
+    else
+      @spec = @p1
+      @id = @spec.id
+      
+
+class Slider extends Widget
   
   @handle: "slider"
   @api: "$blab.Widgets.Registry.Slider"
@@ -29,14 +48,16 @@ class Slider
   
   constructor: (@p1, @p2) ->
     
-    if typeof @p1 is "string"
-      @id = @p1
-      console.log "P1/P2", @p1, @p2
-      @spec = @p2
-      @spec.id = @id
-    else
-      @spec = @p1
-      @id = @spec.id
+    super @p1, @p2
+    console.log "===========SPEC", @spec
+    
+    # if typeof @p1 is "string"
+    #  @id = @p1
+    #  @spec = @p2
+    #  @spec.id = @id
+    # else
+    #  @spec = @p1
+    #  @id = @spec.id
       
     {@min, @max, @step, @init, @prompt, @text} = @spec
     
@@ -80,28 +101,29 @@ class Slider
   getVal: -> @value
 
 
-class Table
+class Table extends Widget
   
   @handle: "table"
   @api: "$blab.Widgets.Registry.Table"
   
   @initSpec: (id) -> """
-    id: "#{id}"
     headings: ["Column 1", "Column 2"]
     widths: [100, 100]
     css: {margin: "0 auto"}
   """
   
-  @layoutPreamble: "#{@handle} = (spec) -> new #{@api}(spec)"
+  @layoutPreamble: "#{@handle} = (id, spec) -> new #{@api}(id, spec)"
   
   @computePreamble: "#{@handle} = (id, v...) ->\n  #{@api}.compute(id, v)\n  null"
   
   @compute: (id, v) ->
     Widgets.fetch(Table, id, v...)?.setVal(v)
   
-  constructor: (@spec) ->
+  constructor: (@p1, @p2) ->
     
-    {@id, @headings, @widths, @colCss, @css} = @spec
+    super @p1, @p2
+    
+    {@headings, @widths, @colCss, @css} = @spec
     
     @table = $("#"+@id)
     @table.remove() if @table.length
@@ -151,13 +173,12 @@ class Table
     Math.round(x*10000)/10000
 
 
-class Plot
+class Plot extends Widget
   
   @handle: "plot"
   @api: "$blab.Widgets.Registry.Plot"
   
   @initSpec: (id) -> """
-    id: "#{id}"
     width: 300, height: 200
     xlabel: "x", ylabel: "y"
     # xaxis: {min: 0, max: 1}
@@ -167,16 +188,18 @@ class Plot
     grid: {backgroundColor: "white"}
   """
   
-  @layoutPreamble: "#{@handle} = (spec) -> new #{@api}(spec)"
+  @layoutPreamble: "#{@handle} = (id, spec) -> new #{@api}(id, spec)"
   
   @computePreamble: "#{@handle} = (id, v...) ->\n  #{@api}.compute(id, v)\n  null"
   
   @compute: (id, v) ->
     Widgets.fetch(Plot, id, v...)?.setVal(v)
   
-  constructor: (@spec) ->
+  constructor: (@p1, @p2) ->
     
-    {@id, @width, @height, @xlabel, @ylabel} = @spec
+    super @p1, @p2
+    
+    {@width, @height, @xlabel, @ylabel} = @spec
     
     @plot = $("#"+@id)
     @plot.remove() if @plot.length
@@ -240,13 +263,12 @@ class Plot
     #@axesLabels = new AxesLabels @plot, params
     #@axesLabels.position()
 
-class Bar
+class Bar extends Widget
   
   @handle: "bar"
   @api: "$blab.Widgets.Registry.Bar"
   
   @initSpec: (id) -> """
-    id: "#{id}"
     width: 300, height: 200
     xlabel: "x", ylabel: "y"
     xaxis: {minTickSize: 1}
@@ -257,16 +279,18 @@ class Bar
     grid: {backgroundColor: "white"}
   """
   
-  @layoutPreamble: "#{@handle} = (spec) -> new #{@api}(spec)"
+  @layoutPreamble: "#{@handle} = (id, spec) -> new #{@api}(id, spec)"
   
   @computePreamble: "#{@handle} = (id, v...) ->\n  #{@api}.compute(id, v)\n  null"
   
   @compute: (id, v) ->
     Widgets.fetch(Bar, id, v...)?.setVal(v)
   
-  constructor: (@spec) ->
+  constructor: (@p1, @p2) ->
     
-    {@id, @width, @height, @xlabel, @ylabel} = @spec
+    super @p1, @p2
+    
+    {@width, @height, @xlabel, @ylabel} = @spec
     
     @plot = $("#"+@id)
     @plot.remove() if @plot.length

@@ -199,17 +199,24 @@ class Plot
     params.xaxis?.axisLabelPadding ?= 10
     params.yaxis?.axisLabelPadding ?= 10
     
-    x = v[0]
-    y = v[1]
-    
-    if y?.length and y[0].length?
-      nLines = y.length
-      d = []
-      for line in y
-        l = numeric.transpose([x, line])
+    lol = (u) -> # list of lists
+        if u[0].length?
+            z = u
+        else
+            z = []
+            z.push u
+        z
+
+    X = lol v[0]
+    Y = lol v[1]
+
+    maxRows =  Math.max(X.length, Y.length)
+    d = []
+    for k in [0...maxRows]
+        xRow = Math.min(k,X.length-1)
+        yRow = Math.min(k,Y.length-1)
+        l = numeric.transpose([X[xRow], Y[yRow]])
         d.push l
-    else
-      d = [numeric.transpose([x, y])]
     
     $.plot @plot, d, params
     

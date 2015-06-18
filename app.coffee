@@ -16,11 +16,27 @@ class Widgets
     
     @Layout = Layout
     
+    testFolding = =>
+      resource = $blab.resources.find(@filename)
+      ed = editor = resource.containers?.fileNodes?[0].editor
+      return unless ed
+      editor = ed.editor
+      editor.setShowFoldWidgets true
+      session = editor.getSession()
+      session.on "changeFold", ->
+        console.log "fold"
+        ed.setHeight session.getScreenLength()
+      session.foldAll()
+      #console.log "*****L", session.getScreenLength()
+      #ed.setHeight session.getScreenLength()
+      
+    
     $(document).on "preCompileCoffee", (evt, data) =>
       url = data.resource.url
       console.log "preCompileCoffee", url 
       @count = 0  # ZZZ Bug?  only for foo.coffee or widgets.coffee
       return unless url is @filename
+      testFolding()
       @Layout.render()
       @precode()
       @widgets = {}
@@ -53,13 +69,13 @@ class Widgets
     name = Widget.handle
     spec = Widget.initSpec(id)
     s = spec.split("\n").join("\n  ")
-    code = "#{name}\n  #{s}"
+    code = "#{name} \"#{id}\",\n  #{s}"
     resource.containers.fileNodes[0].editor.set(resource.content + "\n\n" + code)
     @queueCompile()
   
   @createFromCounter: (Widget, id) ->
     spec = Widget.initSpec(id)
-    make = -> new Widget eval(CoffeeScript.compile(spec, bare: true))
+    make = -> new Widget id, eval(CoffeeScript.compile(spec, bare: true))
     setTimeout(make, 700)
   
   @queueCompile: (t=500) ->

@@ -9,8 +9,9 @@ class Slider
   
   @initVal: 5
   
+  # id: "#{id}"
+  
   @initSpec: (id) -> """
-    id: "#{id}"
     min: 0, max: 10, step: 0.1, init: #{Slider.initVal}
     prompt: "#{id}:"
     text: (v) -> v
@@ -18,7 +19,7 @@ class Slider
   
   # ZZZ can be determined in Widgets?
   @layoutPreamble:
-    "#{@handle} = (spec) -> new #{@api}(spec)"
+    "#{@handle} = (id, spec) -> new #{@api}(id, spec)"
     
   @computePreamble:
     "#{@handle} = (id) -> #{@api}.compute(id)"
@@ -26,9 +27,18 @@ class Slider
   @compute: (id) ->
     Widgets.fetch(Slider, id)?.getVal() ? Slider.initVal
   
-  constructor: (@spec) ->
+  constructor: (@p1, @p2) ->
     
-    {@id, @min, @max, @step, @init, @prompt, @text} = @spec
+    if typeof @p1 is "string"
+      @id = @p1
+      console.log "P1/P2", @p1, @p2
+      @spec = @p2
+      @spec.id = @id
+    else
+      @spec = @p1
+      @id = @spec.id
+      
+    {@min, @max, @step, @init, @prompt, @text} = @spec
     
     @sliderContainer = $("#"+@id)
     if @sliderContainer.length

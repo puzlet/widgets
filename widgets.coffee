@@ -32,6 +32,7 @@ class Slider extends Widget
     min: 0, max: 10, step: 0.1, init: #{Slider.initVal}
     prompt: "#{id}:"
     text: (v) -> v
+    pos: "#row1 .left", order: 1
   """
   
   # ZZZ can be determined in Widgets?

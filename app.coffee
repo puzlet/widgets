@@ -23,7 +23,7 @@ class Widgets
       ed = resource.containers?.fileNodes?[0].editor
       return unless ed
       
-      ed.show false
+      #ed.show false
       return
       
       editor = ed.editor
@@ -169,6 +169,15 @@ class Widgets
       ed.spec.endLine = 4 #end+1
       ed.setViewPort()
       
+    testEdit = =>
+      resource = $blab.resources.find(@filename)
+      ed = resource.containers?.fileNodes?[0].editor
+      return unless ed
+      editor = ed.editor
+      ed.onChange =>
+        console.log "CHANGE!!!!!!!!"
+        #ed.setViewPort()
+      
     @viewport = -> dovp()
     
     first = true
@@ -181,6 +190,7 @@ class Widgets
       if first
         console.log "TEST FOLD/VIEW"
         testFolding()
+        testEdit()
         testViewPort()
         #first = false
       @Layout.render()
@@ -201,7 +211,7 @@ class Widgets
       
   @append: (id, widget, element) ->
     @widgets[id] = widget
-    @Layout.append element
+    @Layout.append element, widget
     
   @fetch: (Widget, id) ->
     idSpecified = id?
@@ -303,9 +313,19 @@ class Layout
       for col in row
         c = $ "<div>", class: col
         r.append c
+        for d in [1..5]
+          o = $ "<div>", class: "order-#{d}"
+          c.append o
       r.append($ "<div>", class: "clear")
         
-  @append: (element) -> $(@currentContainer).append element
+  @append: (element, widget) ->
+    if widget?.spec.pos?
+      container = $(widget.spec.pos)
+      order = widget.spec.order
+      container = $(container).find(".order-"+order) if order?
+    else
+      container = $(@currentContainer)
+    container.append element
   
   @text: (t) -> @append t
 

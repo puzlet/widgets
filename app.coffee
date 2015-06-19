@@ -71,9 +71,11 @@ class Widgets
       ed.editorContainer[0].onwheel = -> false
     
     
+    currentLine = null
+    
     dovp = =>
       
-      console.log "****** DO VIEWPORT"
+      #console.log "****** DO VIEWPORT"
       
       compute = $blab.resources.find("compute.coffee")
       comp = compute?.containers?.fileNodes?[0].editor
@@ -81,7 +83,6 @@ class Widgets
       compEditor = comp.editor
       
       sel = compEditor.selection
-      currentLine = null
       
       cursor = compEditor.selection.getCursor()
       if cursor.row isnt currentLine

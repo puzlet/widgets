@@ -60,7 +60,13 @@ class Slider extends Widget
     @sliderPrompt = $ "<div>", class: "slider-prompt"
     @sliderPrompt.append @prompt
     @outer.append @sliderPrompt
-    @sliderContainer = $ "<div>", class: "mvc-slider", id: @id
+    @sliderContainer = $ "<div>",
+      class: "mvc-slider"
+      id: @id
+      click: (e, ui) =>
+        console.log "click slider", @id
+        $.event.trigger "clickWidget", type: "slider", id: @id
+    
     @outer.append @sliderContainer
     @textDiv = $ "<div>", class: "slider-text"
     @outer.append(" ").append @textDiv
@@ -119,6 +125,9 @@ class Table extends Widget
     @table = $ "<table>",
       id: @id
       class: "widget"
+      click: (e, ui) =>
+        console.log "click slider", @id
+        $.event.trigger "clickWidget", type: "table", id: @id
     
     if @css
       @table.css @css
@@ -197,6 +206,9 @@ class Plot extends Widget
       css:
         width: @width ? 400
         height: @height ? 200
+      click: (e, ui) =>
+        console.log "click slider", @id
+        $.event.trigger "clickWidget", type: "plot", id: @id
         
     Widgets.append @id, this, @plot
     

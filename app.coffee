@@ -166,13 +166,18 @@ class Widgets
       
     @viewport = -> dovp()
     
+    first = true
+    
     $(document).on "preCompileCoffee", (evt, data) =>
       url = data.resource.url
       console.log "preCompileCoffee", url 
       @count = 0  # ZZZ Bug?  only for foo.coffee or widgets.coffee
       return unless url is @filename
-      testFolding()
-      testViewPort()
+      if first
+        console.log "TEST FOLD/VIEW"
+        testFolding()
+        testViewPort()
+        #first = false
       @Layout.render()
       @precode()
       @widgets = {}
@@ -182,6 +187,10 @@ class Widgets
       widget?.initialize?() for key, widget in @widgets
       Computation.init()
       $.event.trigger "htmlOutputUpdated"
+      
+    $(document).on "clickWidget", (evt, data) =>
+      console.log "obs", data
+      setViewPort data.type + " " + "\"#{data.id}\""
       
     @queueCompile 2000  # Hack to force compile for Gist source
       

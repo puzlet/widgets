@@ -18,7 +18,7 @@ class Widgets
     
     testFolding = =>
       resource = $blab.resources.find(@filename)
-      ed = editor = resource.containers?.fileNodes?[0].editor
+      ed = resource.containers?.fileNodes?[0].editor
       return unless ed
       editor = ed.editor
       editor.setShowFoldWidgets true
@@ -26,17 +26,91 @@ class Widgets
       session.on "changeFold", ->
         console.log "fold"
         ed.setHeight session.getScreenLength()
-      session.foldAll()
-      #console.log "*****L", session.getScreenLength()
-      #ed.setHeight session.getScreenLength()
+      session.foldAll(1, 10000, 0)
+    
+    setViewPort = (txt) =>
+      resource = $blab.resources.find(@filename)
+      ed = resource.containers?.fileNodes?[0].editor
+      return unless ed
+      code = ed.code()
+      #console.log "***code", code
+      lines = code.split "\n"
+      start = null
+      if txt
+        for line, idx in lines
+          if line.indexOf(txt) isnt -1
+            start = idx
+          if start? and line is ""
+            end = idx
+            break
+      else
+        start = 1
+        end = 1
+      ed.spec.viewPort = true
+      ed.spec.startLine = start+1
+      ed.spec.endLine = end+1
+      ed.setViewPort()
       
+    
+    testViewPort = =>
+      
+      compute = $blab.resources.find("compute.coffee")
+      comp = compute?.containers?.fileNodes?[0].editor
+      if comp
+        compEditor = comp.editor
+        sel = compEditor.selection
+        currentLine = null
+        sel.on "changeCursor", ->
+          cursor = compEditor.selection.getCursor()
+          if cursor.row isnt currentLine
+            currentLine = cursor.row
+            code = comp.code()
+            lines = code.split "\n"
+            line = lines[currentLine]  # ZZZ easier way?
+            console.log "Current line", currentLine, line
+            found = line.indexOf "table-orbit-phobos"
+            if found isnt -1
+              #console.log "MATCH", found
+              setViewPort "table \"table-orbit-phobos"
+              return
+            found = line.indexOf "radius"
+            if found isnt -1
+              #console.log "MATCH", found
+              setViewPort "slider \"radius"
+              return
+            setViewPort()
+      
+      resource = $blab.resources.find(@filename)
+      ed = resource.containers?.fileNodes?[0].editor
+      return unless ed
+      
+      #ed.hide()
+      
+      #return
+      
+      code = ed.code()
+      #console.log "***code", code
+      lines = code.split "\n"
+      start = null
+      for line, idx in lines
+        if line.indexOf("table \"table-orbit-phobos\"") isnt -1
+          start = idx
+        if start? and line is ""
+          end = idx
+          break
+      ed.spec.viewPort = true
+      ed.spec.startLine = 1 #start+1
+      ed.spec.endLine = 4 #end+1
+      ed.setViewPort()
+
     
     $(document).on "preCompileCoffee", (evt, data) =>
       url = data.resource.url
       console.log "preCompileCoffee", url 
       @count = 0  # ZZZ Bug?  only for foo.coffee or widgets.coffee
       return unless url is @filename
-      testFolding()
+      #testFolding()
+      testViewPort()
       @Layout.render()
       @precode()
       @widgets = {}

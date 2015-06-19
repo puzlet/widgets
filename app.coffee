@@ -64,6 +64,11 @@ class Widgets
       ed.spec.startLine = start+1
       ed.spec.endLine = end+1
       ed.setViewPort()
+      editor = ed.editor
+      #editor.setOption({minLines: 4, maxLines: 4})
+      #editor.$blockScrolling = Infinity
+      #editor.onwheel = preventDefault
+      ed.editorContainer[0].onwheel = -> false
     
     
     dovp = =>

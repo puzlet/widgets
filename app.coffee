@@ -12,6 +12,8 @@ class Widgets
   @widgets: {}
   @count: 0
   
+  @viewport: ->
+  
   @initialize: ->
     
     @Layout = Layout
@@ -20,6 +22,10 @@ class Widgets
       resource = $blab.resources.find(@filename)
       ed = resource.containers?.fileNodes?[0].editor
       return unless ed
+      
+      ed.show false
+      return
+      
       editor = ed.editor
       editor.setShowFoldWidgets true
       session = editor.getSession()
@@ -36,7 +42,9 @@ class Widgets
       #console.log "***code", code
       lines = code.split "\n"
       start = null
+      #ed.show true
       if txt
+        ed.show true
         for line, idx in lines
           if line.indexOf(txt) isnt -1
             start = idx
@@ -44,12 +52,49 @@ class Widgets
             end = idx
             break
       else
+        ed.show false
         start = 1
         end = 1
+      if start is null
+        ed.show false
+        start = 1
+        end = 1
+      console.log "start/end", start, end
       ed.spec.viewPort = true
       ed.spec.startLine = start+1
       ed.spec.endLine = end+1
       ed.setViewPort()
+    
+    
+    dovp = =>
+      
+      console.log "****** DO VIEWPORT"
+      
+      compute = $blab.resources.find("compute.coffee")
+      comp = compute?.containers?.fileNodes?[0].editor
+      return unless comp
+      compEditor = comp.editor
+      
+      sel = compEditor.selection
+      currentLine = null
+      
+      cursor = compEditor.selection.getCursor()
+      if cursor.row isnt currentLine
+        currentLine = cursor.row
+        code = comp.code()
+        lines = code.split "\n"
+        line = lines[currentLine]  # ZZZ easier way?
+        console.log "Current line", currentLine, line
+        
+        myregex = /(slider|table|plot|bar) "([^"]*)"/
+        console.log "REGEX"
+        matchArray = myregex.exec(line)
+        if (matchArray isnt null)
+            thematch = matchArray[1]
+            console.log "**** thematch", matchArray, thematch
+            setViewPort matchArray[0]
+        else
+          setViewPort()
       
     
     testViewPort = =>
@@ -60,30 +105,46 @@ class Widgets
         compEditor = comp.editor
         sel = compEditor.selection
         currentLine = null
-        sel.on "changeCursor", ->
-          cursor = compEditor.selection.getCursor()
-          if cursor.row isnt currentLine
-            currentLine = cursor.row
-            code = comp.code()
-            lines = code.split "\n"
-            line = lines[currentLine]  # ZZZ easier way?
-            console.log "Current line", currentLine, line
-            found = line.indexOf "table-orbit-phobos"
-            if found isnt -1
-              #console.log "MATCH", found
-              setViewPort "table \"table-orbit-phobos"
-              return
-            found = line.indexOf "radius"
-            if found isnt -1
-              #console.log "MATCH", found
-              setViewPort "slider \"radius"
-              return
-            setViewPort()
+        sel.on "changeCursor", -> dovp()
+          
+          # cursor = compEditor.selection.getCursor()
+          # if cursor.row isnt currentLine
+          #   currentLine = cursor.row
+          #   code = comp.code()
+          #   lines = code.split "\n"
+          #   line = lines[currentLine]  # ZZZ easier way?
+          #   console.log "Current line", currentLine, line
+          #
+          #   myregex = /(slider|table|plot|bar) "([^"]*)"/
+          #   console.log "REGEX"
+          #   matchArray = myregex.exec(line)
+          #   if (matchArray isnt null)
+          #       thematch = matchArray[1]
+          #       console.log "**** thematch", matchArray, thematch
+          #       setViewPort matchArray[0]
+          #   else
+          #     setViewPort()
+          #   return
+          #
+          #
+          #   found = line.indexOf "table-orbit-phobos"
+          #   if found isnt -1
+          #     #console.log "MATCH", found
+          #     setViewPort "table \"table-orbit-phobos"
+          #     return
+          #   found = line.indexOf "radius"
+          #   if found isnt -1
+          #     #console.log "MATCH", found
+          #     setViewPort "slider \"radius"
+          #     return
+          #   setViewPort()
       
       resource = $blab.resources.find(@filename)
       ed = resource.containers?.fileNodes?[0].editor
       return unless ed
       
+      
+      return 
       #ed.hide()
       
       #return
@@ -102,14 +163,15 @@ class Widgets
       ed.spec.startLine = 1 #start+1
       ed.spec.endLine = 4 #end+1
       ed.setViewPort()
-
+      
+    @viewport = -> dovp()
     
     $(document).on "preCompileCoffee", (evt, data) =>
       url = data.resource.url
       console.log "preCompileCoffee", url 
       @count = 0  # ZZZ Bug?  only for foo.coffee or widgets.coffee
       return unless url is @filename
-      #testFolding()
+      testFolding()
       testViewPort()
       @Layout.render()
       @precode()
@@ -143,8 +205,8 @@ class Widgets
     name = Widget.handle
     spec = Widget.initSpec(id)
     s = spec.split("\n").join("\n  ")
-    code = "#{name} \"#{id}\",\n  #{s}"
-    resource.containers.fileNodes[0].editor.set(resource.content + "\n\n" + code)
+    code = "#{name} \"#{id}\",\n  #{s}\n"
+    resource.containers.fileNodes[0].editor.set(resource.content + "\n" + code)
     @queueCompile()
   
   @createFromCounter: (Widget, id) ->
@@ -157,7 +219,10 @@ class Widgets
     if @tCompile
       clearTimeout(@tCompile)
       @tCompile = null
-    @tCompile = setTimeout (-> resource.compile()), t
+    @tCompile = setTimeout (=> 
+      resource.compile()
+      @viewport()
+    ), t
     
   @compute: -> Computation.compute()
   

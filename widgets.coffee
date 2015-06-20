@@ -265,6 +265,7 @@ class Plot extends Widget
     #@axesLabels = new AxesLabels @plot, params
     #@axesLabels.position()
 
+###
 class Bar extends Widget
   
   @handle: "bar"
@@ -347,6 +348,7 @@ class Bar extends Widget
         d.push {"data": l, "label":L[lRow]}
 
     $.plot @plot, d, params
+###
     
 class AxesLabels
   
@@ -371,5 +373,5 @@ class AxesLabels
       marginTop: (@yaxisLabel.width() / 2 - 10) + "px"
 
 
-Widgets.register [Slider, Table, Plot, Bar]
+Widgets.register [Slider, Table, Plot]
 

@@ -7,6 +7,22 @@ processHtml = ->
     main = $ "#main-text"
     main.empty()
     main.append Wiky.toHtml(resource.content)
+    
+    pos = main.find "div[data-pos]"
+    old = $("#widgets").find "div[data-pos]"
+    old.remove()
+    
+    #console.log "ROW", $("#row3")
+    if pos.length
+      console.log "POS", pos
+      setTimeout (->  # ZZZ needs to trigger after widget rendering
+        #console.log "pos", $(pos[0]), pos.html()
+        for p in pos
+          $($(p).attr "data-pos").append $(p)
+      ), 1000
+      #.appendTo 
+    
+    
     $.event.trigger "htmlOutputUpdated"
     #console.log Wiky
 

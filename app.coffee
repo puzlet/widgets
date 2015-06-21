@@ -1,5 +1,57 @@
 #!vanilla
 
+processHtml = ->
+  #console.log "******** PROC HTML", $blab.resources
+  for resource in $blab.resources.select("html")
+    #console.log "**** HTML", resource, resource.content
+    main = $ "#main-text"
+    main.empty()
+    main.append Wiky.toHtml(resource.content)
+    $.event.trigger "htmlOutputUpdated"
+    #console.log Wiky
+
+            #@render html.content for html in @resources.select("html")  # TODO: callback for HTMLResource?
+
+
+$pz.renderHtml = ->
+  console.log "$$$$$$$$ RENDER HTML"
+  #@page.rerender()
+  processHtml()
+
+
+$(document).on "aceFilesLoaded", ->
+  if Wiky?
+    processHtml()
+  else
+    resources = $blab.resources
+    resources.add {url: "/puzlet/puzlet/js/wiky.js"}
+    resources.loadUnloaded =>
+      console.log "***WIKY loaded", Wiky
+      #setTimeout (-> console.log "******** wiky loaded", Wiky), 2000
+      
+      processHtml()
+      
+      renderId = null
+      
+      resource = $blab.resources.select("html")
+      ed = resource[0].containers.fileNodes[0].editor
+      ed.onChange =>
+        console.log "CHANGE"
+        clearTimeout(renderId) if renderId
+        renderId = setTimeout (-> processHtml()), 500
+      
+      ed.show false
+      
+      shown = false
+      $("#main-text").css cursor: "default"
+      
+      $("#main-text").click ->
+        console.log "click text"
+        resource[0].containers.fileNodes[0].editor.show(not shown)
+        shown = not shown
+
+#$blab?.resources?.on "ready", -> processHtml()
+
 class Widgets
   
   @filename: "layout.coffee"  # should be layout.coffee

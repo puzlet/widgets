@@ -321,6 +321,7 @@ class TextEditor
   constructor: ->
     
     @text = $ @containerId
+    return unless @text.length
     @text.css(cursor: "default")  # ZZZ do in CSS
     @text.click => @toggle()
     
@@ -339,7 +340,8 @@ class TextEditor
     
   init: ->
     @resource = @resources.find(@filename)
-    @editor = @resource.containers?.fileNodes?[0].editor
+    @editor = @resource?.containers?.fileNodes?[0].editor
+    return unless @editor
     @editor.onChange => @render()
     @editor.show false
     

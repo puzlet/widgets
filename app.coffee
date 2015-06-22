@@ -213,7 +213,7 @@ class Computation
   @filename: "compute.coffee"
   
   @init: ->
-    #p = @precode()
+    p = @precode()
     #console.log "@@@@@@@@@PRECODE", p
     @compute() #if @precode()
     
@@ -251,14 +251,16 @@ $(document).on "preCompileCoffee", (evt, data) =>
 
 class ComputationEditor
   
-  @filename: "compute.coffee"
+  filename: "compute.coffee"
   
   constructor: ->
     
     @currentLine = null
     
     $(document).on "preCompileCoffee", (evt, data) =>
-      @init(data.resource) if data.url is @filename
+      resource = data.resource
+      url = resource?.url
+      @init(resource) if url is @filename
       
   init: (@resource) ->
     

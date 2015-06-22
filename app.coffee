@@ -406,6 +406,8 @@ codeSections = ->
   title = "Show/hide code"
   comp = $ "#computation-code-section"
   layout = $ "#layout-code-section"
+  predef = $ ".predefined-code"
+  predef.hide()
   
   $("#computation-code-heading")
     #.attr(title: title)
@@ -414,6 +416,18 @@ codeSections = ->
   $("#layout-code-heading")
     #.attr(title: title)
     .click -> layout.toggle(500)
+  
+  ps = true
+  toggleHeading = ->
+    ps = not ps
+    $("#predefined-code-heading").html (if ps then "[Hide" else "[Show")+" pre-defined code]"
+  toggleHeading()
+  
+  $("#predefined-code-heading")
+    .click ->
+      predef.toggle(500)
+      toggleHeading()
+      
       
   #comp.hide()
   #layout.hide()

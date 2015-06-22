@@ -125,7 +125,7 @@ class WidgetEditor
       setTimeout (-> clickedOnWidget = false), 300
     
     $(document).on "computationCursorOnWidget", (evt, data) =>
-      console.log "comp cursor on widget", data
+      #console.log "comp cursor on widget", data
       clickedOnWidget = true
       @setViewPort data.match
       

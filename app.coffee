@@ -253,6 +253,11 @@ class ComputationEditor
   
   filename: "compute.coffee"
   
+  code:
+    slider: "x = slider \"x\""
+    plot: "plot \"my-plot\", x, y"
+    table: "table \"my-table\", x, y"
+  
   constructor: ->
     
     @currentLine = null
@@ -266,6 +271,11 @@ class ComputationEditor
       #return unless data.url is @filename
       @currentLine = null
       @setLine() if data.url is @filename
+      
+    $(document).on "clickComputationButton", (evt, data) =>
+      #console.log "button", data, @selection.getCursor()
+      @aceEditor.focus()
+      @aceEditor.insert @code[data.button]+"\n"
       
   init: (@resource) ->
     
@@ -307,6 +317,34 @@ class ComputationEditor
     matchArray = widgetRegex.exec(line)
     match = if matchArray is null then null else matchArray[0]
     $.event.trigger "computationCursorOnWidget", {match}
+    
+
+
+class ComputationButtons
+  
+  constructor: ->
+    console.log "***** Buttons"
+    @container = $ "#computation-buttons"
+    @create "slider"
+    @create "table"
+    @create "plot"
+    
+    run = $ "<div>",
+      css: {display: "inline-block", marginLeft: "10px", color: "#aaa", fontSize: "10pt"}
+      text: "Click shift-return to run"
+    @container.append run
+    #b = $ "<button>", text: "button"
+    #@container.append b
+    #b.click -> console.log "click!"
+    #b.button().click(-> console.log "click")
+    
+    #<button>A button element</button>
+  
+  create: (txt) ->
+    b = $ "<button>", text: txt
+    @container.append b
+    b.click ->
+      $.event.trigger "clickComputationButton", {button: txt}
     
 
 
@@ -463,6 +501,7 @@ codeSections()
 Widgets.initialize()
 
 new ComputationEditor
+new ComputationButtons
 
 textEditor = new TextEditor
 $pz.renderHtml = -> textEditor.process()

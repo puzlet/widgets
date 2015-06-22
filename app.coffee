@@ -6,84 +6,6 @@
 # Hack to process only once - not needed?
 return if $blab?.layoutProcessed
 $blab.layoutProcessed = true
-console.log "============ LAYOUT"
-
-processHtml = ->
-  return unless Wiky?
-  #console.log "******** PROC HTML", $blab.resources
-  for resource in $blab.resources.select("html")
-    #console.log "**** HTML", resource, resource.content
-    
-    old = $("#widgets").find "div[data-pos]"
-    old.remove()
-    
-    main = $ "#main-text"
-    main.empty()
-    main.append Wiky.toHtml(resource.content)
-    
-    pos = main.find "div[data-pos]"
-    
-    #console.log "ROW", $("#row3")
-    console.log "POS", pos
-    if pos.length
-      if $("#row1").length
-        for p in pos
-          $($(p).attr "data-pos").append $(p)
-      else
-        setTimeout (->  # ZZZ needs to trigger after widget rendering
-          #console.log "pos", $(pos[0]), pos.html()
-          for p in pos
-            $($(p).attr "data-pos").append $(p)
-        ), 1000
-      #.appendTo 
-    
-    
-    $.event.trigger "htmlOutputUpdated"
-    #console.log Wiky
-
-    #@render html.content for html in @resources.select("html")  # TODO: callback for HTMLResource?
-
-$pz.renderHtml = ->
-  console.log "$$$$$$$$ RENDER HTML"
-  #@page.rerender()
-  processHtml()
-
-
-$(document).on "aceFilesLoaded", ->
-  if Wiky?
-    processHtml()
-  else
-    resources = $blab.resources
-    resources.add {url: "/puzlet/puzlet/js/wiky.js"}
-    resources.loadUnloaded =>
-      console.log "***WIKY loaded", Wiky
-      #setTimeout (-> console.log "******** wiky loaded", Wiky), 2000
-      
-      #processHtml()  # ZZZ now handled via widget render listener
-      
-      renderId = null
-      
-      resource = $blab.resources.select("html")
-      ed = resource[0].containers.fileNodes[0].editor
-      ed.onChange =>
-        console.log "CHANGE"
-        clearTimeout(renderId) if renderId
-        renderId = setTimeout (-> processHtml()), 500
-      
-      ed.show false
-      
-      shown = false
-      $("#main-text").css cursor: "default"
-      
-      $("#main-text").click ->
-        console.log "click text"
-        resource[0].containers.fileNodes[0].editor.show(not shown)
-        shown = not shown
-
-#$blab?.resources?.on "ready", -> processHtml()
-
-$(document).on "renderedWidgets", -> processHtml()
-  
 
 class Widgets
   
@@ -227,12 +149,11 @@ class WidgetEditor
     # ZZZ init folding here?
     
     @editor.onChange =>
-
+      
       console.log "edit #{@filename}"
-
+      
       #ed.setViewPort()
-
-        
+      
   setViewPort: (txt) ->
     return unless @editor
     
@@ -284,6 +205,7 @@ class WidgetEditor
       ed.setHeight session.getScreenLength()
     session.foldAll(1, 10000, 0)
     
+
 
 class Computation
   
@@ -348,6 +270,77 @@ class ComputationEditor
     matchArray = widgetRegex.exec(line)
     match = if matchArray is null then null else matchArray[0]
     $.event.trigger "computationCursorOnWidget", {match}
+    
+
+
+class TextEditor
+  
+  containerId: "#main-text"
+  filename: "text.html"
+  wikyUrl: "/puzlet/puzlet/js/wiky.js"
+  posAttr: "data-pos"
+  widgetsId: "#widgets"
+  
+  constructor: ->
+    
+    @text = $ @containerId
+    @text.css(cursor: "default")  # ZZZ do in CSS
+    @text.click => @toggle()
+    
+    @resources = $blab.resources
+    
+    onEvt = (evt, f) -> $(document).on(evt, -> f())
+    
+    onEvt "aceFilesLoaded", =>
+      if Wiky? then @process() else @loadWiky => @init()
+    
+    onEvt "renderedWidgets", => @process()
+    
+  loadWiky: (callback) ->
+    @resources.add {url: @wikyUrl}
+    @resources.loadUnloaded -> callback?()
+    
+  init: ->
+    @resource = @resources.find(@filename)
+    @editor = @resource.containers?.fileNodes?[0].editor
+    @editor.onChange => @render()
+    @editor.show false
+    
+  render: ->
+    @renderId ?= null
+    clearTimeout(@renderId) if @renderId
+    @renderId = setTimeout (=> @process()), 500
+    
+  process: ->
+    return unless Wiky?
+    @text.empty()
+    @text.append Wiky.toHtml(@resource.content)
+    @positionText()
+    $.event.trigger "htmlOutputUpdated"
+    
+  positionText: ->
+    
+    sel = "div[#{@posAttr}]"
+    widgets = $(@widgetsId)
+    current = widgets.find sel
+    current.remove()
+    
+    divs = @text.find sel
+    return unless divs.length
+    
+    append = => $($(p).attr @posAttr).append($(p)) for p in divs
+    
+    if widgets.length  # Alt: if $("#row1").length
+      append()
+    else
+      # ZZZ needs to trigger after widget rendering
+      setTimeout (-> append()), 1000
+      
+  toggle: ->
+    return unless @editor
+    @editorShown ?= false  # ZZZ get from editor show state?
+    @editor.show(not @editorShown)
+    @editorShown = not @editorShown
 
 
 class Layout
@@ -410,9 +403,12 @@ codeSections = ->
 
 codeSections()
 
-console.log "@@@@@@@@@ widgets init"
 Widgets.initialize()
+
 new ComputationEditor
+
+textEditor = new TextEditor
+$pz.renderHtml = -> textEditor.processHtml()
 
 # Export
 $blab.Widgets = Widgets 

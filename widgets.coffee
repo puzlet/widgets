@@ -163,6 +163,7 @@ class Table extends Widget
       for i in [0...v.length]
         #w = @widths[i]
         d = v[i][idx]
+        #console.log "d", d
         val = if typeof d is "number" then @format(d) else d
         tr.append "<td>"+val+"</td>"
 #        tr.append "<td width='#{w}'>"+val+"</td>"

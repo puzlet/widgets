@@ -1,5 +1,13 @@
 #!vanilla
 
+# TODO:
+# grunt
+
+# Hack to process only once - not needed?
+return if $blab?.layoutProcessed
+$blab.layoutProcessed = true
+console.log "============ LAYOUT"
+
 processHtml = ->
   #console.log "******** PROC HTML", $blab.resources
   for resource in $blab.resources.select("html")
@@ -32,8 +40,7 @@ processHtml = ->
     $.event.trigger "htmlOutputUpdated"
     #console.log Wiky
 
-            #@render html.content for html in @resources.select("html")  # TODO: callback for HTMLResource?
-
+    #@render html.content for html in @resources.select("html")  # TODO: callback for HTMLResource?
 
 $pz.renderHtml = ->
   console.log "$$$$$$$$ RENDER HTML"
@@ -86,188 +93,19 @@ class Widgets
   @widgets: {}
   @count: 0
   
-  @viewport: ->
-  
   @initialize: ->
     
     @Layout = Layout
     
-    testFolding = =>
-      resource = $blab.resources.find(@filename)
-      ed = resource.containers?.fileNodes?[0].editor
-      return unless ed
-      
-      #ed.show false
-      return
-      
-      editor = ed.editor
-      editor.setShowFoldWidgets true
-      session = editor.getSession()
-      session.on "changeFold", ->
-        console.log "fold"
-        ed.setHeight session.getScreenLength()
-      session.foldAll(1, 10000, 0)
-    
-    setViewPort = (txt) =>
-      resource = $blab.resources.find(@filename)
-      ed = resource.containers?.fileNodes?[0].editor
-      return unless ed
-      code = ed.code()
-      #console.log "***code", code
-      lines = code.split "\n"
-      start = null
-      #ed.show true
-      if txt
-        ed.show true
-        for line, idx in lines
-          if line.indexOf(txt) isnt -1
-            start = idx
-          if start? and line is ""
-            end = idx
-            break
-      else
-        ed.show false
-        start = 1
-        end = 1
-      if start is null
-        ed.show false
-        start = 1
-        end = 1
-      console.log "start/end", start, end
-      ed.spec.viewPort = true
-      ed.spec.startLine = start+1
-      ed.spec.endLine = end+1
-      ed.setViewPort()
-      editor = ed.editor
-      #editor.setOption({minLines: 4, maxLines: 4})
-      #editor.$blockScrolling = Infinity
-      #editor.onwheel = preventDefault
-      ed.editorContainer[0].onwheel = -> false
-    
-    
-    currentLine = null
-    
-    dovp = =>
-      
-      #console.log "****** DO VIEWPORT"
-      
-      compute = $blab.resources.find("compute.coffee")
-      comp = compute?.containers?.fileNodes?[0].editor
-      return unless comp
-      compEditor = comp.editor
-      
-      sel = compEditor.selection
-      
-      cursor = compEditor.selection.getCursor()
-      if cursor.row isnt currentLine
-        currentLine = cursor.row
-        code = comp.code()
-        lines = code.split "\n"
-        line = lines[currentLine]  # ZZZ easier way?
-        console.log "Current line", currentLine, line
-        
-        myregex = /(slider|table|plot|bar) "([^"]*)"/
-        console.log "REGEX"
-        matchArray = myregex.exec(line)
-        if (matchArray isnt null)
-            thematch = matchArray[1]
-            console.log "**** thematch", matchArray, thematch
-            setViewPort matchArray[0]
-        else
-          setViewPort()
-      
-    
-    testViewPort = =>
-      
-      compute = $blab.resources.find("compute.coffee")
-      comp = compute?.containers?.fileNodes?[0].editor
-      if comp
-        compEditor = comp.editor
-        sel = compEditor.selection
-        currentLine = null
-        sel.on "changeCursor", -> dovp()
-          
-          # cursor = compEditor.selection.getCursor()
-          # if cursor.row isnt currentLine
-          #   currentLine = cursor.row
-          #   code = comp.code()
-          #   lines = code.split "\n"
-          #   line = lines[currentLine]  # ZZZ easier way?
-          #   console.log "Current line", currentLine, line
-          #
-          #   myregex = /(slider|table|plot|bar) "([^"]*)"/
-          #   console.log "REGEX"
-          #   matchArray = myregex.exec(line)
-          #   if (matchArray isnt null)
-          #       thematch = matchArray[1]
-          #       console.log "**** thematch", matchArray, thematch
-          #       setViewPort matchArray[0]
-          #   else
-          #     setViewPort()
-          #   return
-          #
-          #
-          #   found = line.indexOf "table-orbit-phobos"
-          #   if found isnt -1
-          #     #console.log "MATCH", found
-          #     setViewPort "table \"table-orbit-phobos"
-          #     return
-          #   found = line.indexOf "radius"
-          #   if found isnt -1
-          #     #console.log "MATCH", found
-          #     setViewPort "slider \"radius"
-          #     return
-          #   setViewPort()
-      
-      resource = $blab.resources.find(@filename)
-      ed = resource.containers?.fileNodes?[0].editor
-      return unless ed
-      
-      
-      return 
-      #ed.hide()
-      
-      #return
-      
-      code = ed.code()
-      #console.log "***code", code
-      lines = code.split "\n"
-      start = null
-      for line, idx in lines
-        if line.indexOf("table \"table-orbit-phobos\"") isnt -1
-          start = idx
-        if start? and line is ""
-          end = idx
-          break
-      ed.spec.viewPort = true
-      ed.spec.startLine = 1 #start+1
-      ed.spec.endLine = 4 #end+1
-      ed.setViewPort()
-      
-    testEdit = =>
-      resource = $blab.resources.find(@filename)
-      ed = resource.containers?.fileNodes?[0].editor
-      return unless ed
-      editor = ed.editor
-      ed.onChange =>
-        console.log "CHANGE!!!!!!!!"
-        #ed.setViewPort()
-      
-    @viewport = -> dovp()
-    
-    first = true
+    @widgetEditor ?= new WidgetEditor(@filename)
     
     $(document).on "preCompileCoffee", (evt, data) =>
-      url = data.resource.url
+      resource = data.resource
+      url = resource.url
       console.log "preCompileCoffee", url 
       @count = 0  # ZZZ Bug?  only for foo.coffee or widgets.coffee
       return unless url is @filename
-      if first
-        console.log "TEST FOLD/VIEW"
-        testFolding()
-        testEdit()
-        testViewPort()
-        #first = false
+      @widgetEditor.init(resource)
       @Layout.render()
       @precode()
       @widgets = {}
@@ -277,10 +115,6 @@ class Widgets
       widget?.initialize?() for key, widget in @widgets
       Computation.init()
       $.event.trigger "htmlOutputUpdated"
-      
-    $(document).on "clickWidget", (evt, data) =>
-      console.log "obs", data
-      setViewPort data.type + " " + "\"#{data.id}\""
       
     @queueCompile 2000  # Hack to force compile for Gist source
       
@@ -305,6 +139,7 @@ class Widgets
     spec = Widget.initSpec(id)
     s = spec.split("\n").join("\n  ")
     code = "#{name} \"#{id}\",\n  #{s}\n"
+    # ZZZ TODO: this should be method of WidgetEditor.
     resource.containers.fileNodes[0].editor.set(resource.content + "\n" + code)
     @queueCompile()
   
@@ -320,7 +155,7 @@ class Widgets
       @tCompile = null
     @tCompile = setTimeout (=> 
       resource.compile()
-      @viewport()
+#  REINSTATE    @viewport()
     ), t
     
   @compute: -> Computation.compute()
@@ -336,8 +171,103 @@ class Widgets
       postamble: ""
     
     $blab.precompile(precompile)
-    
 
+
+class WidgetEditor
+  
+  # TODO:
+  # button to show whole layout file
+  # move layout to eval area
+  # layout fixed pos at bottom of browser window
+  
+  
+  constructor: (@filename) ->
+    
+    @currentLine = null  # compute.coffee
+    
+    #$(document).on "preCompileCoffee", (evt, data) =>
+    #  resource = data.resource
+    #  @init(resource) if resource.url is @filename
+      
+    $(document).on "clickWidget", (evt, data) =>
+      console.log "obs", data
+      @setViewPort data.type + " " + "\"#{data.id}\""
+      
+    $(document).on "computationCursorOnWidget", (evt, data) =>
+      console.log "comp cursor on widget", data
+      @setViewPort data.match
+      
+    $(document.body).click (evt, data) =>
+      console.log "click container", evt.target, evt, data
+      
+  init: (@resource) ->
+    return if @editor
+    @editor = @resource.containers?.fileNodes?[0].editor
+    return unless @editor
+    @aceEditor = @editor.editor
+    #@initViewport()
+    
+    @setViewPort null
+    
+    # ZZZ init folding here?
+    
+    @editor.onChange =>
+
+      console.log "edit #{@filename}"
+
+      #ed.setViewPort()
+
+        
+  setViewPort: (txt) ->
+    return unless @editor
+    code = @editor.code()
+    lines = code.split "\n"
+    start = null
+    
+    spec = @editor.spec
+    
+    if txt
+      for line, idx in lines
+        if line.indexOf(txt) isnt -1
+          start = idx
+        if start? and line is ""
+          end = idx
+          break
+    
+    if start is null
+      @editor.spec.viewPort = false
+      @editor.setHeight()
+      @editor.show false
+      @editor.container.parent().hide()
+      return
+      start = 1
+      end = 1
+    
+    @editor.container.parent().show()
+    @editor.show true if start
+    spec.viewPort = true
+    spec.startLine = start+1
+    spec.endLine = end+1
+    @editor.setViewPort()
+    @editor.editorContainer[0].onwheel = -> false
+      
+  folding: ->
+    # ZZZ to do
+    resource = $blab.resources.find(@filename)
+    ed = resource.containers?.fileNodes?[0].editor
+    return unless ed
+    
+    #ed.show false
+    return
+    
+    editor = ed.editor
+    editor.setShowFoldWidgets true
+    session = editor.getSession()
+    session.on "changeFold", ->
+      console.log "fold"
+      ed.setHeight session.getScreenLength()
+    session.foldAll(1, 10000, 0)
+    
 
 class Computation
   
@@ -362,6 +292,46 @@ class Computation
       postamble: ""
     
     $blab.precompile(precompile)
+
+
+class ComputationEditor
+  
+  @filename: "compute.coffee"
+  
+  constructor: ->
+    
+    @currentLine = null
+    
+    $(document).on "preCompileCoffee", (evt, data) =>
+      @init(data.resource) if data.url is @filename
+      
+  init: (@resource) ->
+    
+    return if @editor  # Return if already defined
+    # ZZZ but what about current line - e.g., if widget view changed some other way.
+    
+    @editor = @resource?.containers?.fileNodes?[0].editor
+    
+    return unless @editor
+    @aceEditor = @editor.editor
+    
+    @currentLine = null
+    
+    selection = @aceEditor.selection
+    selection.on "changeCursor", =>
+      cursor = selection.getCursor()
+      if cursor.row isnt @currentLine
+        @currentLine = cursor.row
+        @inspectLineForWidget()
+      
+  inspectLineForWidget: ->
+    code = @editor.code()
+    lines = code.split "\n"
+    line = lines[@currentLine]  # ZZZ easier way?  pass current line - ace method?
+    widgetRegex = /(slider|table|plot|bar) "([^"]*)"/
+    matchArray = widgetRegex.exec(line)
+    match = if matchArray is null then null else matchArray[0]
+    $.event.trigger "computationCursorOnWidget", {match}
 
 
 class Layout
@@ -423,7 +393,9 @@ codeSections = ->
 
 codeSections()
 
+console.log "@@@@@@@@@ widgets init"
 Widgets.initialize()
+new ComputationEditor
 
 # Export
 $blab.Widgets = Widgets 

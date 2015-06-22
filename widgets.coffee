@@ -136,7 +136,7 @@ class Table extends Widget
     
     super @p1, @p2
     
-    {@headings, @widths, @colCss, @css} = @spec
+    {@headings, @widths, @colCss, @css, @precision} = @spec
     
     @table = $("#"+@id)
     @table.remove() if @table.length
@@ -187,7 +187,10 @@ class Table extends Widget
     @value = v
     
   format: (x) ->
-    Math.round(x*10000)/10000
+    if x is 0 or Number.isInteger?(x) and Math.abs(x)<1e10
+      x
+    else
+      x.toPrecision(@precision ? 4) 
 
 
 class Plot extends Widget

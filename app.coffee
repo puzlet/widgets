@@ -2,6 +2,7 @@
 
 # TODO:
 # grunt
+# show all layout code
 
 # Hack to process only once - not needed?
 return if $blab?.layoutProcessed
@@ -212,8 +213,9 @@ class Computation
   @filename: "compute.coffee"
   
   @init: ->
-    @precode()
-    @compute()
+    p = @precode()
+    console.log "@@@@@@@@@PRECODE", p
+    @compute() if @precode()
     
   @compute: ->
     resource = $blab.resources.find(@filename)
@@ -224,12 +226,19 @@ class Computation
     preamble = ""
     preamble += Widget.computePreamble+"\n" for WidgetName, Widget of Widgets.Registry
     
+    preDefine = $blab.resources.find("predefine.coffee")
+    return null unless preDefine
+    #console.log "predef", preDefine?.content
+    preamble += preDefine?.content+"\n"
+    console.log "********* preamble", preamble
+    
     precompile = {}
     precompile[@filename] =
       preamble: preamble
       postamble: ""
     
     $blab.precompile(precompile)
+    true
 
 
 class ComputationEditor

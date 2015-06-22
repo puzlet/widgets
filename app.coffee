@@ -9,6 +9,7 @@ $blab.layoutProcessed = true
 console.log "============ LAYOUT"
 
 processHtml = ->
+  return unless Wiky?
   #console.log "******** PROC HTML", $blab.resources
   for resource in $blab.resources.select("html")
     #console.log "**** HTML", resource, resource.content
@@ -58,7 +59,7 @@ $(document).on "aceFilesLoaded", ->
       console.log "***WIKY loaded", Wiky
       #setTimeout (-> console.log "******** wiky loaded", Wiky), 2000
       
-      processHtml()
+      #processHtml()  # ZZZ now handled via widget render listener
       
       renderId = null
       
@@ -80,6 +81,9 @@ $(document).on "aceFilesLoaded", ->
         shown = not shown
 
 #$blab?.resources?.on "ready", -> processHtml()
+
+$(document).on "renderedWidgets", -> processHtml()
+  
 
 class Widgets
   
@@ -188,17 +192,28 @@ class WidgetEditor
     #$(document).on "preCompileCoffee", (evt, data) =>
     #  resource = data.resource
     #  @init(resource) if resource.url is @filename
-      
+    
+    clickedOnWidget = false
+    
     $(document).on "clickWidget", (evt, data) =>
       console.log "obs", data
+      clickedOnWidget = true
       @setViewPort data.type + " " + "\"#{data.id}\""
-      
+      setTimeout (-> clickedOnWidget = false), 300
+    
     $(document).on "computationCursorOnWidget", (evt, data) =>
       console.log "comp cursor on widget", data
+      clickedOnWidget = true
       @setViewPort data.match
       
     $(document.body).click (evt, data) =>
       console.log "click container", evt.target, evt, data
+      setTimeout (=>
+        unless clickedOnWidget or $(evt.target).attr("class") is "ace_content"
+          console.log "NOT WIDGET"
+          @setViewPort null
+        clickedOnWidget = false
+      ), 100
       
   init: (@resource) ->
     return if @editor
@@ -220,13 +235,14 @@ class WidgetEditor
         
   setViewPort: (txt) ->
     return unless @editor
-    code = @editor.code()
-    lines = code.split "\n"
+    
     start = null
     
     spec = @editor.spec
     
     if txt
+      code = @editor.code()
+      lines = code.split "\n"
       for line, idx in lines
         if line.indexOf(txt) isnt -1
           start = idx
@@ -362,6 +378,7 @@ class Layout
           o = $ "<div>", class: "order-#{d}"
           c.append o
       r.append($ "<div>", class: "clear")
+    $.event.trigger "renderedWidgets"
         
   @append: (element, widget) ->
     if widget?.spec.pos?

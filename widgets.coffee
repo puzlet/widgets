@@ -57,6 +57,14 @@ class Slider extends Widget
       @outer = @sliderContainer.parent()
       @outer?.remove()
     
+    sliding = false
+    
+    clickEvent = =>
+      console.log "click slider", @id
+      unless sliding
+        $.event.trigger "clickWidget", type: "slider", id: @id
+      sliding = false
+    
     @outer = $ "<div>", class: "slider-container"
     @sliderPrompt = $ "<div>", class: "slider-prompt"
     @sliderPrompt.append @prompt
@@ -64,9 +72,13 @@ class Slider extends Widget
     @sliderContainer = $ "<div>",
       class: "mvc-slider"
       id: @id
-      click: (e, ui) =>
-        console.log "click slider", @id
-        $.event.trigger "clickWidget", type: "slider", id: @id
+      click: (e, ui) => clickEvent()
+      #  console.log "click slider", @id
+      #  unless sliding
+      #    $.event.trigger "clickWidget", type: "slider", id: @id
+      #  sliding = false
+        
+    @outer.click -> clickEvent()
     
     @outer.append @sliderContainer
     @textDiv = $ "<div>", class: "slider-text"
@@ -82,9 +94,14 @@ class Slider extends Widget
       step: @step
       value: @init
       slide: (e, ui) =>
+        sliding = true
         @setVal(ui.value)
         Widgets.compute()  # Superclass method
-      change: (e, ui) =>  # Unused because responds to slide method
+      change: (e, ui) =>
+        setTimeout (-> sliding = false), 100 # Unused because responds to slide method
+      #mouseup: ->
+      #  console.log "MOUSE UP"
+      #  sliding = false
       
     @setVal @init
     

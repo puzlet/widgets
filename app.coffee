@@ -213,9 +213,9 @@ class Computation
   @filename: "compute.coffee"
   
   @init: ->
-    p = @precode()
-    console.log "@@@@@@@@@PRECODE", p
-    @compute() if @precode()
+    #p = @precode()
+    #console.log "@@@@@@@@@PRECODE", p
+    @compute() #if @precode()
     
   @compute: ->
     resource = $blab.resources.find(@filename)
@@ -227,10 +227,11 @@ class Computation
     preamble += Widget.computePreamble+"\n" for WidgetName, Widget of Widgets.Registry
     
     preDefine = $blab.resources.find("predefine.coffee")
-    return null unless preDefine
+    #console.log "******* predefine", preDefine
+    #return null unless preDefine
     #console.log "predef", preDefine?.content
-    preamble += preDefine?.content+"\n"
-    console.log "********* preamble", preamble
+    preamble += preDefine?.content+"\n" if preDefine
+    #console.log "********* preamble", preamble
     
     precompile = {}
     precompile[@filename] =
@@ -239,6 +240,13 @@ class Computation
     
     $blab.precompile(precompile)
     true
+
+$(document).on "preCompileCoffee", (evt, data) =>
+  resource = data.resource
+  url = resource.url
+  console.log "@@@@@@@ PRECOMPILE", url
+  if url is "compute.coffee"
+    Computation.precode()
 
 
 class ComputationEditor

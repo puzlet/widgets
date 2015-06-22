@@ -244,7 +244,7 @@ class Computation
 $(document).on "preCompileCoffee", (evt, data) =>
   resource = data.resource
   url = resource.url
-  console.log "@@@@@@@ PRECOMPILE", url
+  #console.log "@@@@@@@ PRECOMPILE", url
   if url is "compute.coffee"
     Computation.precode()
 
@@ -262,6 +262,11 @@ class ComputationEditor
       url = resource?.url
       @init(resource) if url is @filename
       
+    $(document).on "compiledCoffeeScript", (evt, data) =>
+      #return unless data.url is @filename
+      @currentLine = null
+      @setLine() if data.url is @filename
+      
   init: (@resource) ->
     
     return if @editor  # Return if already defined
@@ -273,14 +278,27 @@ class ComputationEditor
     @aceEditor = @editor.editor
     
     @currentLine = null
+    @selection = @aceEditor.selection
     
-    selection = @aceEditor.selection
-    selection.on "changeCursor", =>
-      cursor = selection.getCursor()
-      if cursor.row isnt @currentLine
-        @currentLine = cursor.row
-        @inspectLineForWidget()
-      
+    @selection.on "changeCursor", => @setLine()
+      #cursor = @selection.getCursor()
+      #line = cursor.row
+      #if line isnt @currentLine
+      #  @setLine(line)
+    #  cursor = selection.getCursor()
+    #  if cursor.row isnt @currentLine
+    #    @currentLine = cursor.row
+    #    @inspectLineForWidget()
+        
+    #@setLine()
+    #@inspectLineForWidget()
+    
+  setLine: =>
+    cursor = @selection.getCursor()
+    if cursor.row isnt @currentLine
+      @currentLine = cursor.row
+      @inspectLineForWidget()
+  
   inspectLineForWidget: ->
     code = @editor.code()
     lines = code.split "\n"
@@ -328,10 +346,14 @@ class TextEditor
   render: ->
     @renderId ?= null
     clearTimeout(@renderId) if @renderId
-    @renderId = setTimeout (=> @process()), 500
+    @renderId = setTimeout (=>
+      #@resource.content = 
+      @process()
+    ), 500
     
   process: ->
     return unless Wiky?
+    #console.log "html content", @resource.content
     @text.empty()
     @text.append Wiky.toHtml(@resource.content)
     @positionText()
@@ -422,7 +444,7 @@ codeSections = ->
   ps = true
   toggleHeading = ->
     ps = not ps
-    $("#predefined-code-heading").html (if ps then "[Hide" else "[Show")+" pre-defined code]"
+    $("#predefined-code-heading").html (if ps then "[Hide" else "[Show")+" predefined code]"
   toggleHeading()
   
   $("#predefined-code-heading")
@@ -441,7 +463,7 @@ Widgets.initialize()
 new ComputationEditor
 
 textEditor = new TextEditor
-$pz.renderHtml = -> textEditor.processHtml()
+$pz.renderHtml = -> textEditor.process()
 
 # Export
 $blab.Widgets = Widgets 

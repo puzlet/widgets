@@ -325,13 +325,13 @@ class ComputationButtons
   constructor: ->
     console.log "***** Buttons"
     @container = $ "#computation-buttons"
-    @create "slider"
-    @create "table"
-    @create "plot"
+    #@create "slider"
+    #@create "table"
+    #@create "plot"
     
     run = $ "<div>",
-      css: {display: "inline-block", marginLeft: "10px", color: "#aaa", fontSize: "10pt"}
-      text: "Click shift-return to run"
+      css: {display: "inline-block", color: "#aaa", fontSize: "10pt"}
+      text: "Click shift-enter to run"
     @container.append run
     #b = $ "<button>", text: "button"
     #@container.append b

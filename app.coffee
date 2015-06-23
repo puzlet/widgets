@@ -280,6 +280,11 @@ class ComputationEditor
       @aceEditor.focus()
       @aceEditor.insert @code[data.button]+"\n"
       
+    $(document).on "runCode", (evt, data) =>
+      #if data.url is @filename
+      @currentLine = null
+      @setLine()
+      
   init: (@resource) ->
     
     return if @editor  # Return if already defined

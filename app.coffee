@@ -156,6 +156,9 @@ class WidgetEditor
       #ed.setViewPort()
       
   setViewPort: (txt) ->
+    
+    #console.log "SET VIEWPORT", txt
+    
     return unless @editor
     
     start = null
@@ -269,7 +272,7 @@ class ComputationEditor
       
     $(document).on "compiledCoffeeScript", (evt, data) =>
       #return unless data.url is @filename
-      @currentLine = null
+      #@currentLine = null
       @setLine() if data.url is @filename
       
     $(document).on "clickComputationButton", (evt, data) =>
@@ -291,6 +294,12 @@ class ComputationEditor
     @selection = @aceEditor.selection
     
     @selection.on "changeCursor", => @setLine()
+    
+    @aceEditor.on "focus", =>
+      @currentLine = null
+      @setLine()
+      #console.log "focus"
+    
       #cursor = @selection.getCursor()
       #line = cursor.row
       #if line isnt @currentLine

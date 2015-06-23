@@ -119,17 +119,20 @@ class Table extends Widget
   @handle: "table"
   @api: "$blab.Widgets.Registry.Table"
   
-  @initSpec: (id) -> """
-    headings: ["Column 1", "Column 2"]
-    widths: [100, 100]
-    css: {margin: "0 auto"}
-  """
+  @initSpec: (id, v) ->
+    """
+      headings: null # ["Column 1", "Column 2"]
+      widths: null #[100, 100]
+      css: {margin: "0 auto"}
+    """
   
   @layoutPreamble: "#{@handle} = (id, spec) -> new #{@api}(id, spec)"
   
-  @computePreamble: "#{@handle} = (id, v...) ->\n  #{@api}.compute(id, v)\n  null"
+  @computePreamble: "#{@handle} = (id, v...) ->\n  #{@api}.compute(id, v...)\n  null"
   
-  @compute: (id, v) ->
+  @compute: (id, v...) ->
+    for x, idx in v
+      v[idx] = [x] unless Array.isArray(x)
     Widgets.fetch(Table, id, v...)?.setVal(v)
   
   constructor: (@p1, @p2) ->
@@ -155,28 +158,38 @@ class Table extends Widget
   initialize: -> #@setVal @init
     
   setVal: (v) ->
-    @table.empty()
+    #@table.empty()
     
-    colGroup = $ "<colgroup>"
-    @table.append colGroup
-    for w, idx in @widths
-      css = @colCss?[idx] ? {}
-      css.width = w
-      col = $ "<col>", css: css # {width: w}
-      colGroup.append col
+    console.log "table", @table.children()
     
-    if @headings
-      tr = $ "<tr>"
-      @table.append tr
-      for h, idx in @headings
-        #w = @widths[idx]
-        tr.append "<th>#{h}</th>"
-#        tr.append "<th width='#{w}'>#{h}</th>"
+    unless @table.children().length
     
+      colGroup = $ "<colgroup>"
+      @table.append colGroup
+      @widths ?= [100]
+      @widths = [@widths] unless Array.isArray(@widths)
+      for w, idx in @widths
+        css = @colCss?[idx] ? {}
+        css.width = w
+        col = $ "<col>", css: css # {width: w}
+        colGroup.append col
+    
+      if @headings
+        tr = $ "<tr>"
+        @table.append tr
+        for h, idx in @headings
+          #w = @widths[idx]
+          tr.append "<th>#{h}</th>"
+  #        tr.append "<th width='#{w}'>#{h}</th>"
+    
+      @tbody = $ "<tbody>"
+      @table.append @tbody
+    
+    @tbody.empty()
     row = []
     for x, idx in v[0]
       tr = $ "<tr>"
-      @table.append tr
+      @tbody.append tr
       for i in [0...v.length]
         #w = @widths[i]
         d = v[i][idx]

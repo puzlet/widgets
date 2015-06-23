@@ -49,7 +49,7 @@ class Widgets
     @widgets[id] = widget
     @Layout.append element, widget
     
-  @fetch: (Widget, id) ->
+  @fetch: (Widget, id, v...) ->
     idSpecified = id?
     unless idSpecified
       id = @count
@@ -57,21 +57,21 @@ class Widgets
     w = @widgets[id]
     return w if w
     # Create new widget
-    if idSpecified then @createFromId(Widget, id) else @createFromCounter(Widget, id)
+    if idSpecified then @createFromId(Widget, id, v...) else @createFromCounter(Widget, id, v...)
     null  # Widget must set default val
     
-  @createFromId: (Widget, id) ->
+  @createFromId: (Widget, id, v...) ->
     resource = $blab.resources.find(@filename)
     name = Widget.handle
-    spec = Widget.initSpec(id)
+    spec = Widget.initSpec(id, v)
     s = spec.split("\n").join("\n  ")
     code = "#{name} \"#{id}\",\n  #{s}\n"
     # ZZZ TODO: this should be method of WidgetEditor.
     resource.containers.fileNodes[0].editor.set(resource.content + "\n" + code)
     @queueCompile()
   
-  @createFromCounter: (Widget, id) ->
-    spec = Widget.initSpec(id)
+  @createFromCounter: (Widget, id, v...) ->
+    spec = Widget.initSpec(id, v)
     make = -> new Widget id, eval(CoffeeScript.compile(spec, bare: true))
     setTimeout(make, 700)
   
@@ -318,8 +318,8 @@ class ComputationEditor
     #@inspectLineForWidget()
     
   setLine: =>
-    cursor = @selection.getCursor()
-    if cursor.row isnt @currentLine
+    cursor = @selection?.getCursor()
+    if cursor?.row isnt @currentLine
       @currentLine = cursor.row
       @inspectLineForWidget()
   
@@ -410,8 +410,15 @@ class TextEditor
     #console.log "html content", @resource.content
     @text.empty()
     @text.append Wiky.toHtml(@resource.content)
+    @setTitle()
     @positionText()
     $.event.trigger "htmlOutputUpdated"
+    
+  setTitle: ->
+    headings = $ ":header"
+    return unless headings.length
+    $blab.title = headings[0].innerHTML
+    document.title = $blab.title
     
   positionText: ->
     

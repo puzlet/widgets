@@ -29,7 +29,6 @@ class Widgets
     $(document).on "preCompileCoffee", (evt, data) =>
       resource = data.resource
       url = resource.url
-      console.log "preCompileCoffee", url 
       @count = 0  # ZZZ Bug?  only for foo.coffee or widgets.coffee
       return unless url is @filename
       @widgetEditor.init(resource)
@@ -50,7 +49,6 @@ class Widgets
     @Layout.append element, widget
     
   @fetch: (Widget, id, v...) ->
-    console.log "^^^^^^^^ FETCH", id
     idSpecified = id?
     unless idSpecified
       id = @count
@@ -108,35 +106,26 @@ class WidgetEditor
   # move layout to eval area
   # layout fixed pos at bottom of browser window
   
-  
   constructor: (@filename) ->
     
     @currentLine = null  # compute.coffee
     
-    #$(document).on "preCompileCoffee", (evt, data) =>
-    #  resource = data.resource
-    #  @init(resource) if resource.url is @filename
-    
     @clickedOnWidget = false
     
     $(document).on "clickWidget", (evt, data) =>
-      console.log "click widget", data
       @clickedOnWidget = true
       @currentId = data.id
       @setViewPort data.type + " " + "\"#{data.id}\""
       setTimeout (=> @clickedOnWidget = false), 300
     
     $(document).on "computationCursorOnWidget", (evt, data) =>
-      console.log "comp cursor on widget", data
       @currentId = null
       @clickedOnWidget = true
       @setViewPort data.match
       
     $(document.body).click (evt, data) =>
-      #console.log "click container", evt.target, evt, data
       setTimeout (=>
         unless @clickedOnWidget or $(evt.target).attr("class") is "ace_content"
-          console.log "NOT WIDGET"
           @setViewPort null
         @clickedOnWidget = false
       ), 100
@@ -146,21 +135,14 @@ class WidgetEditor
     @editor = @resource.containers?.fileNodes?[0].editor
     return unless @editor
     @aceEditor = @editor.editor
-    #@initViewport()
     
     @setViewPort null
     
     # ZZZ init folding here?
     
-    @editor.onChange =>
-      
-      #console.log "edit #{@filename}"
-      
-      #ed.setViewPort()
+    @editor.onChange => 
       
   setViewPort: (txt) ->
-    
-    console.log "SET VIEWPORT", txt
     
     return unless @editor
     
@@ -202,11 +184,8 @@ class WidgetEditor
     @del?.empty()
     
     return unless @currentId
-    console.log "currentId", @currentId
     widget = Widgets.widgets[@currentId]  # ZZZ make method
     return if widget.used
-    
-    console.log "DEL BUTTON"
     
     unless @del?.length
       @del = $ "<div>",
@@ -222,7 +201,6 @@ class WidgetEditor
       css: cursor: "pointer"
       click: =>
         selection = @aceEditor.selection
-        console.log "delete lines", selection, @start, @end
         return unless @start and @end
         selection.moveCursorTo(@start-1, 0)
         selection.selectTo(@end, 0)
@@ -246,7 +224,6 @@ class WidgetEditor
     editor.setShowFoldWidgets true
     session = editor.getSession()
     session.on "changeFold", ->
-      console.log "fold"
       ed.setHeight session.getScreenLength()
     session.foldAll(1, 10000, 0)
     
@@ -261,8 +238,6 @@ class Computation
     @compute() #if @precode()
     
   @compute: ->
-    console.log "******** compute"
-    #w.used = false for id, w of Widgets.widgets  # ZZZ make widgets method
     resource = $blab.resources.find(@filename)
     resource?.compile()
     
@@ -272,11 +247,7 @@ class Computation
     preamble += Widget.computePreamble+"\n" for WidgetName, Widget of Widgets.Registry
     
     preDefine = $blab.resources.find("predefine.coffee")
-    #console.log "******* predefine", preDefine
-    #return null unless preDefine
-    #console.log "predef", preDefine?.content
     preamble += preDefine?.content+"\n" if preDefine
-    #console.log "********* preamble", preamble
     
     precompile = {}
     precompile[@filename] =
@@ -289,15 +260,11 @@ class Computation
 $(document).on "preCompileCoffee", (evt, data) =>
   resource = data.resource
   url = resource.url
-  #console.log "@@@@@@@ PRECOMPILE", url
   if url is "compute.coffee"
     Computation.precode()
     
     for id, w of Widgets.widgets
-      console.log "widget", w
-      w.used = false  # ZZZ make widgets method
-      w.setOpacity 0.2
-    console.log "******** compute2", Widgets.widgets
+      w.setUsed false
 
 
 class ComputationEditor
@@ -324,22 +291,13 @@ class ComputationEditor
       @setLine() if data.url is @filename
       
     $(document).on "clickComputationButton", (evt, data) =>
-      #console.log "button", data, @selection.getCursor()
       @aceEditor.focus()
       @aceEditor.insert @code[data.button]+"\n"
       
     $(document).on "runCode", (evt, data) =>
       return unless data.filename is @filename
-      console.log "runCode", data
       @currentLine = null
       @setLine()
-      
-    #$(document).on "preRunCode", (evt, data) =>
-    #  console.log "setting used flags = false"
-    #  for id, w of Widgets.widgets
-    #    console.log "widget", w
-    #    w.used = false  # ZZZ make widgets method
-    #  console.log "******** compute2", Widgets.widgets
       
   init: (@resource) ->
     
@@ -359,19 +317,6 @@ class ComputationEditor
     @aceEditor.on "focus", =>
       @currentLine = null
       @setLine()
-      #console.log "focus"
-    
-      #cursor = @selection.getCursor()
-      #line = cursor.row
-      #if line isnt @currentLine
-      #  @setLine(line)
-    #  cursor = selection.getCursor()
-    #  if cursor.row isnt @currentLine
-    #    @currentLine = cursor.row
-    #    @inspectLineForWidget()
-        
-    #@setLine()
-    #@inspectLineForWidget()
     
   setLine: =>
     cursor = @selection?.getCursor()
@@ -393,30 +338,19 @@ class ComputationEditor
 class ComputationButtons
   
   constructor: ->
-    console.log "***** Buttons"
     @container = $ "#computation-buttons"
-    #@create "slider"
-    #@create "table"
-    #@create "plot"
     
     run = $ "<div>",
       css: {display: "inline-block", color: "#aaa", fontSize: "10pt"}
       text: "Click shift-enter to run"
     @container.append run
-    #b = $ "<button>", text: "button"
-    #@container.append b
-    #b.click -> console.log "click!"
-    #b.button().click(-> console.log "click")
-    
-    #<button>A button element</button>
   
   create: (txt) ->
     b = $ "<button>", text: txt
     @container.append b
     b.click ->
       $.event.trigger "clickComputationButton", {button: txt}
-    
-
+  
 
 class TextEditor
   
@@ -463,7 +397,6 @@ class TextEditor
     
   process: ->
     return unless Wiky?
-    #console.log "html content", @resource.content
     @text.empty()
     @text.append Wiky.toHtml(@resource.content)
     @setTitle()
@@ -551,11 +484,9 @@ codeSections = ->
   predef.hide()
   
   $("#computation-code-heading")
-    #.attr(title: title)
     .click -> comp.toggle(500)
   
   $("#layout-code-heading")
-    #.attr(title: title)
     .click -> layout.toggle(500)
   
   ps = true
@@ -568,10 +499,6 @@ codeSections = ->
     .click ->
       predef.toggle(500)
       toggleHeading()
-      
-      
-  #comp.hide()
-  #layout.hide()
 
 codeSections()
 

@@ -22,6 +22,11 @@ class Widget
       @spec = @p1
       @id = @spec.id
       
+  setUsed: (used=true) ->
+    return if used is @used
+    @mainContainer.css(opacity: (if used then 1 else 0.2))
+    @used = used
+
 
 class Slider extends Widget
   
@@ -62,7 +67,6 @@ class Slider extends Widget
     sliding = false
     
     clickEvent = =>
-      console.log "click slider", @id
       unless sliding
         $.event.trigger "clickWidget", type: "slider", id: @id
       sliding = false
@@ -75,10 +79,6 @@ class Slider extends Widget
       class: "mvc-slider"
       id: @id
       click: (e, ui) => clickEvent()
-      #  console.log "click slider", @id
-      #  unless sliding
-      #    $.event.trigger "clickWidget", type: "slider", id: @id
-      #  sliding = false
         
     @outer.click -> clickEvent()
     
@@ -86,6 +86,7 @@ class Slider extends Widget
     @textDiv = $ "<div>", class: "slider-text"
     @outer.append(" ").append @textDiv
     
+    @mainContainer = @outer
     Widgets.append @id, this, @outer  # not now: Superclass method
     
     @slider = @sliderContainer.slider
@@ -101,24 +102,17 @@ class Slider extends Widget
         Widgets.compute()  # Superclass method
       change: (e, ui) =>
         setTimeout (-> sliding = false), 100 # Unused because responds to slide method
-      #mouseup: ->
-      #  console.log "MOUSE UP"
-      #  sliding = false
-      
+    
     @setVal @init
     
   initialize: -> @setVal @init
-  
-  setOpacity: (o) -> @outer.css opacity: o
   
   setVal: (v) ->
     @textDiv.html @text(v)
     @value = v
   
   getVal: ->
-    console.log "GET SLIDER VAL", @id
-    @used = true
-    @setOpacity 1
+    @setUsed()
     @value
 
 
@@ -151,21 +145,15 @@ class Table extends Widget
     {@headings, @widths, @colCss, @css, @precision} = @spec
     
     @table = $("#"+@id)
-    #console.log "*****TABLE", @id
     @table.remove() if @table.length
     @table = $ "<table>",
       id: @id
       class: "widget"
       click: (e, ui) =>
-        console.log "click slider", @id
         $.event.trigger "clickWidget", type: "table", id: @id
-    #@tableDiv.append @table
     
-    if @css
-      @table.css @css
-      
-    #unless @table.children().length
-      
+    @table.css(@css) if @css
+    
     colGroup = $ "<colgroup>"
     @table.append colGroup
     @widths ?= [100]
@@ -180,40 +168,29 @@ class Table extends Widget
       tr = $ "<tr>"
       @table.append tr
       for h, idx in @headings
-        #w = @widths[idx]
         tr.append "<th>#{h}</th>"
-#        tr.append "<th width='#{w}'>#{h}</th>"
       
     @tbody = $ "<tbody>"
     @table.append @tbody
     
+    @mainContainer = @table
     Widgets.append @id, this, @table
     @setVal([[0]])
     
   initialize: -> #@setVal @init
   
-  setOpacity: (o) -> @table.css opacity: o
-  
   setVal: (v) ->
-    #@table.empty()
-    @used = true
-    @setOpacity 1
+    @setUsed()
     
-    #console.log "table", @table.children()
-    
-    console.log "=========TABLE SETVAL", @id, v
     @tbody.empty()
     row = []
     for x, idx in v[0]
       tr = $ "<tr>"
       @tbody.append tr
       for i in [0...v.length]
-        #w = @widths[i]
         d = v[i][idx]
-        #console.log "d", d
         val = if typeof d is "number" then @format(d) else d
         tr.append "<td>"+val+"</td>"
-#        tr.append "<td width='#{w}'>"+val+"</td>"
     @value = v
     
   format: (x) ->
@@ -248,8 +225,6 @@ class Plot extends Widget
   
   constructor: (@p1, @p2) ->
     
-    console.log "PLOT CONSTRUCTOR"
-    
     super @p1, @p2
     
     {@width, @height, @xlabel, @ylabel} = @spec
@@ -261,41 +236,26 @@ class Plot extends Widget
       css:
         width: @width ? 400
         height: @height ? 200
-        #background: "#aaa"
       text: "Plot"
       click: (e, ui) =>
-        console.log "click slider", @id
         $.event.trigger "clickWidget", type: "plot", id: @id
         
+    @mainContainer = @plot
     Widgets.append @id, this, @plot
     @setVal([[0], [0]])
     
   initialize: -> #@setVal @init
   
-  setOpacity: (o) -> @plot.css opacity: o
-      
   setVal: (v) ->
     
-    @used = true
-    @setOpacity 1
-    
+    @setUsed()
     @plot.empty()
     @value = v
-    #@plot.text v
     
     params = @spec
     params.series.shadowSize ?= 0
     params.series ?= {color: "#55f"}
-    
-    params.xaxis ?= {}
-    params.yaxis ?= {}
-    
-    params.xaxis?.axisLabel = params.xlabel if params.xlabel
-    params.yaxis?.axisLabel = params.ylabel if params.ylabel
-    params.xaxis?.axisLabelUseCanvas ?= true
-    params.yaxis?.axisLabelUseCanvas ?= true
-    params.xaxis?.axisLabelPadding ?= 10
-    params.yaxis?.axisLabelPadding ?= 10
+    @setAxes params
     
     lol = (u) -> # list of lists
         if u[0].length?
@@ -317,6 +277,18 @@ class Plot extends Widget
         d.push l
     
     $.plot @plot, d, params
+    
+  setAxes: (params) ->
+    
+    params.xaxis ?= {}
+    params.yaxis ?= {}
+    
+    params.xaxis?.axisLabel = params.xlabel if params.xlabel
+    params.yaxis?.axisLabel = params.ylabel if params.ylabel
+    params.xaxis?.axisLabelUseCanvas ?= true
+    params.yaxis?.axisLabelUseCanvas ?= true
+    params.xaxis?.axisLabelPadding ?= 10
+    params.yaxis?.axisLabelPadding ?= 10
     
     #xaxis: {min: 0, max: 1, axisLabel: "Orbit time (minutes)", axisLabelUseCanvas: true, axisLabelPadding: 10}
     #yaxis: {min: 9100, max: 9500, axisLabel: "Orbit radius (km)", axisLabelUseCanvas: true, axisLabelPadding: 10}

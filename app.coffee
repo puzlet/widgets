@@ -154,7 +154,7 @@ class WidgetEditor
     
     @editor.onChange =>
       
-      console.log "edit #{@filename}"
+      #console.log "edit #{@filename}"
       
       #ed.setViewPort()
       
@@ -222,12 +222,13 @@ class WidgetEditor
       css: cursor: "pointer"
       click: =>
         selection = @aceEditor.selection
-        console.log "delete lines", selection
+        console.log "delete lines", selection, @start, @end
         return unless @start and @end
         selection.moveCursorTo(@start-1, 0)
         selection.selectTo(@end, 0)
         @aceEditor.removeLines()
         @editor.run()
+        @editor.container.parent().hide()
         @clickedOnWidget = true
       
     @del.append @delButton

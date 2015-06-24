@@ -129,6 +129,7 @@ class Table extends Widget
       headings: null # ["Column 1", "Column 2"]
       widths: null #[100, 100]
       css: {margin: "0 auto"}
+      pos: "#row1 .left", order: 1
     """
   
   @layoutPreamble: "#{@handle} = (id, spec) -> new #{@api}(id, spec)"
@@ -147,6 +148,7 @@ class Table extends Widget
     {@headings, @widths, @colCss, @css, @precision} = @spec
     
     @table = $("#"+@id)
+    #console.log "*****TABLE", @id
     @table.remove() if @table.length
     @table = $ "<table>",
       id: @id
@@ -154,11 +156,36 @@ class Table extends Widget
       click: (e, ui) =>
         console.log "click slider", @id
         $.event.trigger "clickWidget", type: "table", id: @id
+    #@tableDiv.append @table
     
     if @css
       @table.css @css
+      
+    #unless @table.children().length
+      
+    colGroup = $ "<colgroup>"
+    @table.append colGroup
+    @widths ?= [100]
+    @widths = [@widths] unless Array.isArray(@widths)
+    for w, idx in @widths
+      css = @colCss?[idx] ? {}
+      css.width = w
+      col = $ "<col>", css: css # {width: w}
+      colGroup.append col
+
+    if @headings
+      tr = $ "<tr>"
+      @table.append tr
+      for h, idx in @headings
+        #w = @widths[idx]
+        tr.append "<th>#{h}</th>"
+#        tr.append "<th width='#{w}'>#{h}</th>"
+      
+    @tbody = $ "<tbody>"
+    @table.append @tbody
     
     Widgets.append @id, this, @table
+    @setVal([[0]])
     
   initialize: -> #@setVal @init
     
@@ -166,31 +193,9 @@ class Table extends Widget
     #@table.empty()
     @used = true
     
-    console.log "table", @table.children()
+    #console.log "table", @table.children()
     
-    unless @table.children().length
-    
-      colGroup = $ "<colgroup>"
-      @table.append colGroup
-      @widths ?= [100]
-      @widths = [@widths] unless Array.isArray(@widths)
-      for w, idx in @widths
-        css = @colCss?[idx] ? {}
-        css.width = w
-        col = $ "<col>", css: css # {width: w}
-        colGroup.append col
-    
-      if @headings
-        tr = $ "<tr>"
-        @table.append tr
-        for h, idx in @headings
-          #w = @widths[idx]
-          tr.append "<th>#{h}</th>"
-  #        tr.append "<th width='#{w}'>#{h}</th>"
-    
-      @tbody = $ "<tbody>"
-      @table.append @tbody
-    
+    console.log "=========TABLE SETVAL", @id, v
     @tbody.empty()
     row = []
     for x, idx in v[0]
@@ -225,6 +230,7 @@ class Plot extends Widget
     series: {lines: lineWidth: 1}
     colors: ["red", "blue"]
     grid: {backgroundColor: "white"}
+    pos: "#row1 .left", order: 1
   """
   
   @layoutPreamble: "#{@handle} = (id, spec) -> new #{@api}(id, spec)"
@@ -235,6 +241,8 @@ class Plot extends Widget
     Widgets.fetch(Plot, id, v...)?.setVal(v)
   
   constructor: (@p1, @p2) ->
+    
+    console.log "PLOT CONSTRUCTOR"
     
     super @p1, @p2
     
@@ -247,11 +255,14 @@ class Plot extends Widget
       css:
         width: @width ? 400
         height: @height ? 200
+        #background: "#aaa"
+      text: "Plot"
       click: (e, ui) =>
         console.log "click slider", @id
         $.event.trigger "clickWidget", type: "plot", id: @id
         
     Widgets.append @id, this, @plot
+    @setVal([[0], [0]])
     
   initialize: -> #@setVal @init
     
@@ -308,91 +319,8 @@ class Plot extends Widget
     #@axesLabels = new AxesLabels @plot, params
     #@axesLabels.position()
 
-###
-class Bar extends Widget
-  
-  @handle: "bar"
-  @api: "$blab.Widgets.Registry.Bar"
-  
-  @initSpec: (id) -> """
-    width: 300, height: 200
-    xlabel: "x", ylabel: "y"
-    xaxis: {minTickSize: 1}
-    # xaxis: {min: 0, max: 1}
-    # yaxis: {min: 0, max: 1}
-    series: {bars: {show: true}, stack:true}
-    # colors: ["red", "blue"]
-    grid: {backgroundColor: "white"}
-  """
-  
-  @layoutPreamble: "#{@handle} = (id, spec) -> new #{@api}(id, spec)"
-  
-  @computePreamble: "#{@handle} = (id, v...) ->\n  #{@api}.compute(id, v)\n  null"
-  
-  @compute: (id, v) ->
-    Widgets.fetch(Bar, id, v...)?.setVal(v)
-  
-  constructor: (@p1, @p2) ->
-    
-    super @p1, @p2
-    
-    {@width, @height, @xlabel, @ylabel} = @spec
-    
-    @plot = $("#"+@id)
-    @plot.remove() if @plot.length
-    @plot = $ "<div>",
-      id: @id
-      css:
-        width: @width ? 400
-        height: @height ? 200
-        
-    Widgets.append @id, this, @plot
-    
-  initialize: -> #@setVal @init
-    
-  setVal: (v) ->
-    @plot.empty()
-    @value = v
-    #@plot.text v
-    
-    params = @spec
-    params.series.shadowSize ?= 0
-    params.series ?= {color: "#55f"}
-    
-    params.xaxis ?= {}
-    params.yaxis ?= {}
-    
-    params.xaxis?.axisLabel = params.xlabel if params.xlabel
-    params.yaxis?.axisLabel = params.ylabel if params.ylabel
-    params.xaxis?.axisLabelUseCanvas ?= true
-    params.yaxis?.axisLabelUseCanvas ?= true
-    params.xaxis?.axisLabelPadding ?= 10
-    params.yaxis?.axisLabelPadding ?= 10
-    
-    lol = (u) -> # list of lists
-        if u[0].length?
-            z = u
-        else
-            z = []
-            z.push u
-        z
 
-    X = lol v[0]
-    Y = lol v[1]
-    L = lol v[2]
-
-    maxRows =  Math.max(X.length, Y.length)
-    d = []
-    for k in [0...maxRows]
-        xRow = Math.min(k,X.length-1)
-        yRow = Math.min(k,Y.length-1)
-        lRow = Math.min(k,L.length-1)
-        l = numeric.transpose([X[xRow], Y[yRow]])
-        d.push {"data": l, "label":L[lRow]}
-
-    $.plot @plot, d, params
-###
-    
+# Unused - replaced by flot plugin
 class AxesLabels
   
   constructor: (@container, @params) ->

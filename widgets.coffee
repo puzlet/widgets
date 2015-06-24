@@ -108,7 +108,9 @@ class Slider extends Widget
     @setVal @init
     
   initialize: -> @setVal @init
-    
+  
+  setOpacity: (o) -> @outer.css opacity: o
+  
   setVal: (v) ->
     @textDiv.html @text(v)
     @value = v
@@ -116,6 +118,7 @@ class Slider extends Widget
   getVal: ->
     console.log "GET SLIDER VAL", @id
     @used = true
+    @setOpacity 1
     @value
 
 
@@ -188,10 +191,13 @@ class Table extends Widget
     @setVal([[0]])
     
   initialize: -> #@setVal @init
-    
+  
+  setOpacity: (o) -> @table.css opacity: o
+  
   setVal: (v) ->
     #@table.empty()
     @used = true
+    @setOpacity 1
     
     #console.log "table", @table.children()
     
@@ -265,10 +271,13 @@ class Plot extends Widget
     @setVal([[0], [0]])
     
   initialize: -> #@setVal @init
-    
+  
+  setOpacity: (o) -> @plot.css opacity: o
+      
   setVal: (v) ->
     
     @used = true
+    @setOpacity 1
     
     @plot.empty()
     @value = v

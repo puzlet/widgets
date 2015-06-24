@@ -296,6 +296,7 @@ $(document).on "preCompileCoffee", (evt, data) =>
     for id, w of Widgets.widgets
       console.log "widget", w
       w.used = false  # ZZZ make widgets method
+      w.setOpacity 0.2
     console.log "******** compute2", Widgets.widgets
 
 

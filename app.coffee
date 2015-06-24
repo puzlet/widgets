@@ -120,13 +120,14 @@ class WidgetEditor
     @clickedOnWidget = false
     
     $(document).on "clickWidget", (evt, data) =>
+      console.log "click widget", data
       @clickedOnWidget = true
       @currentId = data.id
       @setViewPort data.type + " " + "\"#{data.id}\""
       setTimeout (=> @clickedOnWidget = false), 300
     
     $(document).on "computationCursorOnWidget", (evt, data) =>
-      #console.log "comp cursor on widget", data
+      console.log "comp cursor on widget", data
       @currentId = null
       @clickedOnWidget = true
       @setViewPort data.match
@@ -159,7 +160,7 @@ class WidgetEditor
       
   setViewPort: (txt) ->
     
-    #console.log "SET VIEWPORT", txt
+    console.log "SET VIEWPORT", txt
     
     return unless @editor
     
@@ -316,7 +317,7 @@ class ComputationEditor
       @init(resource) if url is @filename
       
     $(document).on "compiledCoffeeScript", (evt, data) =>
-      #return unless data.url is @filename
+      return unless data.url is @filename
       #@currentLine = null
       @setLine() if data.url is @filename
       
@@ -326,7 +327,8 @@ class ComputationEditor
       @aceEditor.insert @code[data.button]+"\n"
       
     $(document).on "runCode", (evt, data) =>
-      #if data.url is @filename
+      return unless data.filename is @filename
+      console.log "runCode", data
       @currentLine = null
       @setLine()
       

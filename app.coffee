@@ -116,26 +116,25 @@ class WidgetEditor
     #  resource = data.resource
     #  @init(resource) if resource.url is @filename
     
-    clickedOnWidget = false
+    @clickedOnWidget = false
     
     $(document).on "clickWidget", (evt, data) =>
-      console.log "obs", data
-      clickedOnWidget = true
+      @clickedOnWidget = true
       @setViewPort data.type + " " + "\"#{data.id}\""
-      setTimeout (-> clickedOnWidget = false), 300
+      setTimeout (=> @clickedOnWidget = false), 300
     
     $(document).on "computationCursorOnWidget", (evt, data) =>
       #console.log "comp cursor on widget", data
-      clickedOnWidget = true
+      @clickedOnWidget = true
       @setViewPort data.match
       
     $(document.body).click (evt, data) =>
-      console.log "click container", evt.target, evt, data
+      #console.log "click container", evt.target, evt, data
       setTimeout (=>
-        unless clickedOnWidget or $(evt.target).attr("class") is "ace_content"
+        unless @clickedOnWidget or $(evt.target).attr("class") is "ace_content"
           console.log "NOT WIDGET"
           @setViewPort null
-        clickedOnWidget = false
+        @clickedOnWidget = false
       ), 100
       
   init: (@resource) ->
@@ -161,7 +160,7 @@ class WidgetEditor
     
     return unless @editor
     
-    start = null
+    @start = null
     
     spec = @editor.spec
     
@@ -170,27 +169,52 @@ class WidgetEditor
       lines = code.split "\n"
       for line, idx in lines
         if line.indexOf(txt) isnt -1
-          start = idx
-        if start? and line is ""
-          end = idx
+          @start = idx
+        if @start? and line is ""
+          @end = idx
           break
     
-    if start is null
+    if @start is null
       @editor.spec.viewPort = false
       @editor.setHeight()
       @editor.show false
       @editor.container.parent().hide()
       return
-      start = 1
-      end = 1
+      @start = 1
+      @end = 1
     
     @editor.container.parent().show()
-    @editor.show true if start
+    @deleteButton()
+    
+    @editor.show true if @start
     spec.viewPort = true
-    spec.startLine = start+1
-    spec.endLine = end+1
+    spec.startLine = @start+1
+    spec.endLine = @end+1
     @editor.setViewPort()
     @editor.editorContainer[0].onwheel = -> false
+    
+  deleteButton: ->
+    del = $ "<div>",
+      css:
+        position: "absolute"
+        display: "inline-block"
+        top: 5
+        right: 15
+    @editor.editorContainer.append del
+    button = $ "<span>",
+      text: "Delete"
+      css: cursor: "pointer"
+      click: =>
+        selection = @aceEditor.selection
+        console.log "delete lines", selection
+        return unless @start and @end
+        selection.moveCursorTo(@start-1, 0)
+        selection.selectTo(@end, 0)
+        @aceEditor.removeLines()
+        @editor.run()
+        @clickedOnWidget = true
+        
+    del.append button
       
   folding: ->
     # ZZZ to do

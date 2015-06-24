@@ -50,6 +50,7 @@ class Widgets
     @Layout.append element, widget
     
   @fetch: (Widget, id, v...) ->
+    console.log "^^^^^^^^ FETCH", id
     idSpecified = id?
     unless idSpecified
       id = @count
@@ -120,11 +121,13 @@ class WidgetEditor
     
     $(document).on "clickWidget", (evt, data) =>
       @clickedOnWidget = true
+      @currentId = data.id
       @setViewPort data.type + " " + "\"#{data.id}\""
       setTimeout (=> @clickedOnWidget = false), 300
     
     $(document).on "computationCursorOnWidget", (evt, data) =>
       #console.log "comp cursor on widget", data
+      @currentId = null
       @clickedOnWidget = true
       @setViewPort data.match
       
@@ -194,14 +197,26 @@ class WidgetEditor
     @editor.editorContainer[0].onwheel = -> false
     
   deleteButton: ->
-    del = $ "<div>",
-      css:
-        position: "absolute"
-        display: "inline-block"
-        top: 5
-        right: 15
-    @editor.editorContainer.append del
-    button = $ "<span>",
+    
+    @del?.empty()
+    
+    return unless @currentId
+    console.log "currentId", @currentId
+    widget = Widgets.widgets[@currentId]  # ZZZ make method
+    return if widget.used
+    
+    console.log "DEL BUTTON"
+    
+    unless @del?.length
+      @del = $ "<div>",
+        css:
+          position: "absolute"
+          display: "inline-block"
+          top: 5
+          right: 15
+      @editor.editorContainer.append @del
+      
+    @delButton = $ "<span>",
       text: "Delete"
       css: cursor: "pointer"
       click: =>
@@ -213,8 +228,8 @@ class WidgetEditor
         @aceEditor.removeLines()
         @editor.run()
         @clickedOnWidget = true
-        
-    del.append button
+      
+    @del.append @delButton
       
   folding: ->
     # ZZZ to do
@@ -241,10 +256,11 @@ class Computation
   
   @init: ->
     p = @precode()
-    #console.log "@@@@@@@@@PRECODE", p
     @compute() #if @precode()
     
   @compute: ->
+    console.log "******** compute"
+    #w.used = false for id, w of Widgets.widgets  # ZZZ make widgets method
     resource = $blab.resources.find(@filename)
     resource?.compile()
     
@@ -274,6 +290,11 @@ $(document).on "preCompileCoffee", (evt, data) =>
   #console.log "@@@@@@@ PRECOMPILE", url
   if url is "compute.coffee"
     Computation.precode()
+    
+    for id, w of Widgets.widgets
+      console.log "widget", w
+      w.used = false  # ZZZ make widgets method
+    console.log "******** compute2", Widgets.widgets
 
 
 class ComputationEditor
@@ -308,6 +329,13 @@ class ComputationEditor
       #if data.url is @filename
       @currentLine = null
       @setLine()
+      
+    #$(document).on "preRunCode", (evt, data) =>
+    #  console.log "setting used flags = false"
+    #  for id, w of Widgets.widgets
+    #    console.log "widget", w
+    #    w.used = false  # ZZZ make widgets method
+    #  console.log "******** compute2", Widgets.widgets
       
   init: (@resource) ->
     

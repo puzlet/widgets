@@ -12,6 +12,8 @@ class Widget
     
   constructor: (@p1, @p2) ->
     
+    @used = false
+    
     if typeof @p1 is "string"
       @id = @p1
       @spec = @p2
@@ -111,7 +113,10 @@ class Slider extends Widget
     @textDiv.html @text(v)
     @value = v
   
-  getVal: -> @value
+  getVal: ->
+    console.log "GET SLIDER VAL", @id
+    @used = true
+    @value
 
 
 class Table extends Widget

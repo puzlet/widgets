@@ -164,6 +164,7 @@ class Table extends Widget
     
   setVal: (v) ->
     #@table.empty()
+    @used = true
     
     console.log "table", @table.children()
     
@@ -255,6 +256,9 @@ class Plot extends Widget
   initialize: -> #@setVal @init
     
   setVal: (v) ->
+    
+    @used = true
+    
     @plot.empty()
     @value = v
     #@plot.text v

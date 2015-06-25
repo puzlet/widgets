@@ -30,7 +30,8 @@ class Slider extends Widget
     
     super @p1, @p2
       
-    {@min, @max, @step, @init, @prompt, @text, @unit} = @spec
+    {@min, @max, @step, @init, @prompt, @text, @val, @unit} = @spec
+    # @text is to be deprecated (use @val instead)
     
     @sliderContainer = $("#"+@id)
     if @sliderContainer.length
@@ -96,7 +97,7 @@ class Slider extends Widget
   initialize: -> @setVal @init
   
   setVal: (v) ->
-    @textDiv.html(if @text then @text(v) else v)
+    @textDiv.html(if @val then @val(v) else if @text then @text(v) else v)
     @value = v
   
   getVal: ->

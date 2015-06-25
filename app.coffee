@@ -159,7 +159,7 @@ class WidgetEditor
     return unless @editor
     @aceEditor = @editor.editor
     
-    #@setViewPort null
+    @setViewPort null
     
     # ZZZ init folding here?
     
@@ -170,9 +170,10 @@ class WidgetEditor
     return unless @editor
     
     if @firstDisplay
-      @editor.container.css maxHeight: "30px"
-      @editor.container.removeClass "init-layout-editor"
-      @editor.container.parent().show()
+      container = @editor.container
+      container.removeClass "init-editor"
+      container.css maxHeight: "10px"
+      container.parent().show()
       @editor.show true
       setTimeout (=> @vp txt), 500
       @firstDisplay = false
@@ -180,7 +181,11 @@ class WidgetEditor
       @vp txt
   
   vp: (txt) ->
-    @editor.container.css maxHeight: ""
+    
+    @editor.container.css
+      maxHeight: ""
+      border: "3px solid #aaf"
+    
     @start = null
     
     spec = @editor.spec
@@ -416,6 +421,7 @@ class TextEditor
     @resource = @resources.find(@filename)
     @editor = @resource?.containers?.fileNodes?[0].editor
     return unless @editor
+    @editor.container.removeClass "init-editor"
     @editor.onChange => @render()
     @editor.show false
     

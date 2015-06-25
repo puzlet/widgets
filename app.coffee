@@ -400,6 +400,7 @@ class TextEditor
     @text.click => @toggle()
     
     @resources = $blab.resources
+    @widgetsRendered = false
     
     onEvt = (evt, f) -> $(document).on(evt, -> f())
     
@@ -409,6 +410,7 @@ class TextEditor
     
     onEvt "renderedWidgets", =>
       console.log "TextEditor::renderedWidgets"
+      @widgetsRendered = true
       @process()
     
   loadWiky: (callback) ->
@@ -424,6 +426,7 @@ class TextEditor
     @editor.container.removeClass "init-editor"
     @editor.onChange => @render()
     @editor.show false
+    @process() if @widgetsRendered
     
   render: ->
     @renderId ?= null

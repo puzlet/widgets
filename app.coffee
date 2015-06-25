@@ -521,6 +521,7 @@ codeSections = ->
   comp = $ "#computation-code-section"
   layout = $ "#layout-code-section"
   predef = $ ".predefined-code"
+  
   predef.hide()
   
   $("#computation-code-heading")
@@ -535,8 +536,16 @@ codeSections = ->
     $("#predefined-code-heading").html (if ps then "[Hide" else "[Show")+" predefined code]"
   toggleHeading()
   
+  removeInit = ->
+    resource = $blab.resources.find("predefine.coffee")
+    editor = resource?.containers?.fileNodes?[0].editor
+    editor?.container.removeClass "init-editor"
+    ev = resource?.containers?.evalNodes?[0].editor
+    ev?.container.removeClass "init-editor"
+  
   $("#predefined-code-heading")
     .click ->
+      removeInit()
       predef.toggle(500)
       toggleHeading()
 

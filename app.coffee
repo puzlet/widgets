@@ -130,6 +130,7 @@ class WidgetEditor
   
   constructor: (@filename) ->
     
+    @firstDisplay = true
     @currentLine = null  # compute.coffee
     
     @clickedOnWidget = false
@@ -158,7 +159,7 @@ class WidgetEditor
     return unless @editor
     @aceEditor = @editor.editor
     
-    @setViewPort null
+    #@setViewPort null
     
     # ZZZ init folding here?
     
@@ -168,6 +169,18 @@ class WidgetEditor
     
     return unless @editor
     
+    if @firstDisplay
+      @editor.container.css maxHeight: "30px"
+      @editor.container.removeClass "init-layout-editor"
+      @editor.container.parent().show()
+      @editor.show true
+      setTimeout (=> @vp txt), 500
+      @firstDisplay = false
+    else
+      @vp txt
+  
+  vp: (txt) ->
+    @editor.container.css maxHeight: ""
     @start = null
     
     spec = @editor.spec

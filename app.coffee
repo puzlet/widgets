@@ -386,15 +386,20 @@ class TextEditor
     onEvt = (evt, f) -> $(document).on(evt, -> f())
     
     onEvt "aceFilesLoaded", =>
+      console.log "TextEditor::aceFileLoaded"
       if Wiky? then @process() else @loadWiky => @init()
     
-    onEvt "renderedWidgets", => @process()
+    onEvt "renderedWidgets", =>
+      console.log "TextEditor::renderedWidgets"
+      @process()
     
   loadWiky: (callback) ->
+    console.log "TextEditor::loadWiky"
     @resources.add {url: @wikyUrl}
     @resources.loadUnloaded -> callback?()
     
   init: ->
+    console.log "TextEditor::init"
     @resource = @resources.find(@filename)
     @editor = @resource?.containers?.fileNodes?[0].editor
     return unless @editor
@@ -410,7 +415,9 @@ class TextEditor
     ), 500
     
   process: ->
+    console.log "TextEditor::process"
     return unless Wiky?
+    console.log "TextEditor::process/Wiky"
     @text.empty()
     @text.append Wiky.toHtml(@resource.content)
     @setTitle()

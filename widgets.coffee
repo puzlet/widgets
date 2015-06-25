@@ -13,7 +13,7 @@ class Slider extends Widget
   @initSpec: (id) -> """
     min: 0, max: 10, step: 0.1, init: #{Slider.initVal}
     prompt: "#{id}:"
-    text: (v) -> v
+    unit: ""
     pos: "#row1 .left", order: 1
   """
   
@@ -30,7 +30,7 @@ class Slider extends Widget
     
     super @p1, @p2
       
-    {@min, @max, @step, @init, @prompt, @text} = @spec
+    {@min, @max, @step, @init, @prompt, @text, @unit} = @spec
     
     @sliderContainer = $("#"+@id)
     if @sliderContainer.length
@@ -46,19 +46,33 @@ class Slider extends Widget
       sliding = false
     
     @outer = $ "<div>", class: "slider-container"
+      
+    @sliderPromptContainer = $ "<div>", class: "slider-prompt-container"
+    @outer.append @sliderPromptContainer
+    
     @sliderPrompt = $ "<div>", class: "slider-prompt"
+    @sliderPromptContainer.append @sliderPrompt
+    
     @sliderPrompt.append @prompt
-    @outer.append @sliderPrompt
+    
     @sliderContainer = $ "<div>",
-      class: "mvc-slider"
+      class: "puzlet-slider"
       id: @id
       click: (e, ui) => clickEvent()
+    @outer.append @sliderContainer
         
     @outer.click -> clickEvent()
     
-    @outer.append @sliderContainer
-    @textDiv = $ "<div>", class: "slider-text"
-    @outer.append(" ").append @textDiv
+    @textContainer = $ "<div>", class: "slider-text-container"
+    @outer.append @textContainer
+    
+    @textDiv = $ "<div>", class: "slider-text-1"
+    @textContainer.append @textDiv
+    
+    @textDiv2 = $ "<div>", class: "slider-text-2"
+    @textContainer.append @textDiv2
+    
+    @textDiv2.html @unit if @unit
     
     @mainContainer = @outer
     Widgets.append @id, this, @outer  # not now: Superclass method
@@ -82,7 +96,7 @@ class Slider extends Widget
   initialize: -> @setVal @init
   
   setVal: (v) ->
-    @textDiv.html @text(v)
+    @textDiv.html(if @text then @text(v) else v)
     @value = v
   
   getVal: ->
@@ -208,6 +222,7 @@ class Plot extends Widget
     @plot.remove() if @plot.length
     @plot = $ "<div>",
       id: @id
+      class: "puzlet-plot"
       css:
         width: @width ? 400
         height: @height ? 200
@@ -250,7 +265,15 @@ class Plot extends Widget
       l = numeric.transpose([X[xRow], Y[yRow]])
       d.push l
     
-    $.plot @plot, d, params
+    p = $.plot @plot, d, params
+    o = p.getPlotOffset()
+    console.log "plot offset", @plot.parent().width(), @plot.width(), o.left, o.right
+    # Center plot in parent container
+    m = (@plot.parent().width() - @plot.width() - o.left + o.right)/2
+    console.log "margin", m
+    @plot.css marginLeft: m
+    
+    console.log "**** plot width/offset", p.width(), p.offset()
     
   setAxes: (params) ->
     

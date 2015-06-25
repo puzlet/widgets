@@ -1,32 +1,7 @@
 #!vanilla
 
+Widget = $blab.Widget
 Widgets = $blab.Widgets
-
-class Widget
-  
-  @layoutPreamble:
-    "#{@handle} = (id, spec) -> new #{@api}(id, spec)"
-    
-  @computePreamble:
-    "#{@handle} = (id) -> #{@api}.compute(id)"
-    
-  constructor: (@p1, @p2) ->
-    
-    @used = false
-    
-    if typeof @p1 is "string"
-      @id = @p1
-      @spec = @p2
-      @spec.id = @id
-    else
-      @spec = @p1
-      @id = @spec.id
-      
-  setUsed: (used=true) ->
-    return if used is @used
-    @mainContainer.css(opacity: (if used then 1 else 0.2))
-    @used = used
-
 
 class Slider extends Widget
   
@@ -42,7 +17,6 @@ class Slider extends Widget
     pos: "#row1 .left", order: 1
   """
   
-  # ZZZ can be determined in Widgets?
   @layoutPreamble:
     "#{@handle} = (id, spec) -> new #{@api}(id, spec)"
     
@@ -161,9 +135,9 @@ class Table extends Widget
     for w, idx in @widths
       css = @colCss?[idx] ? {}
       css.width = w
-      col = $ "<col>", css: css # {width: w}
+      col = $ "<col>", css: css
       colGroup.append col
-
+      
     if @headings
       tr = $ "<tr>"
       @table.append tr
@@ -198,6 +172,7 @@ class Table extends Widget
       x
     else
       x.toPrecision(@precision ? 4) 
+  
 
 
 class Plot extends Widget
@@ -236,7 +211,6 @@ class Plot extends Widget
       css:
         width: @width ? 400
         height: @height ? 200
-      text: "Plot"
       click: (e, ui) =>
         $.event.trigger "clickWidget", type: "plot", id: @id
         
@@ -249,7 +223,7 @@ class Plot extends Widget
   setVal: (v) ->
     
     @setUsed()
-    @plot.empty()
+    #@plot.empty()
     @value = v
     
     params = @spec
@@ -258,23 +232,23 @@ class Plot extends Widget
     @setAxes params
     
     lol = (u) -> # list of lists
-        if u[0].length?
-            z = u
-        else
-            z = []
-            z.push u
-        z
-
+      if u[0].length?
+        z = u
+      else
+        z = []
+        z.push u
+      z
+      
     X = lol v[0]
     Y = lol v[1]
-
+    
     maxRows =  Math.max(X.length, Y.length)
     d = []
     for k in [0...maxRows]
-        xRow = Math.min(k,X.length-1)
-        yRow = Math.min(k,Y.length-1)
-        l = numeric.transpose([X[xRow], Y[yRow]])
-        d.push l
+      xRow = Math.min(k,X.length-1)
+      yRow = Math.min(k,Y.length-1)
+      l = numeric.transpose([X[xRow], Y[yRow]])
+      d.push l
     
     $.plot @plot, d, params
     

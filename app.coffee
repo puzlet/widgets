@@ -1,12 +1,34 @@
 #!vanilla
 
-# TODO:
-# grunt
-# show all layout code
-
 # Hack to process only once - not needed?
 return if $blab?.layoutProcessed
 $blab.layoutProcessed = true
+
+class Widget
+  
+  @layoutPreamble:
+    "#{@handle} = (id, spec) -> new #{@api}(id, spec)"
+    
+  @computePreamble:
+    "#{@handle} = (id) -> #{@api}.compute(id)"
+    
+  constructor: (@p1, @p2) ->
+    
+    @used = false
+    
+    if typeof @p1 is "string"
+      @id = @p1
+      @spec = @p2
+      @spec.id = @id
+    else
+      @spec = @p1
+      @id = @spec.id
+      
+  setUsed: (used=true) ->
+    return if used is @used
+    @mainContainer.css(opacity: (if used then 1 else 0.2))
+    @used = used
+
 
 class Widgets
   
@@ -226,7 +248,6 @@ class WidgetEditor
     session.on "changeFold", ->
       ed.setHeight session.getScreenLength()
     session.foldAll(1, 10000, 0)
-    
 
 
 class Computation
@@ -235,7 +256,7 @@ class Computation
   
   @init: ->
     p = @precode()
-    @compute() #if @precode()
+    @compute()
     
   @compute: ->
     resource = $blab.resources.find(@filename)
@@ -256,15 +277,7 @@ class Computation
     
     $blab.precompile(precompile)
     true
-
-$(document).on "preCompileCoffee", (evt, data) =>
-  resource = data.resource
-  url = resource.url
-  if url is "compute.coffee"
-    Computation.precode()
     
-    for id, w of Widgets.widgets
-      w.setUsed false
 
 
 class ComputationEditor
@@ -351,6 +364,7 @@ class ComputationButtons
     b.click ->
       $.event.trigger "clickComputationButton", {button: txt}
   
+
 
 class TextEditor
   
@@ -502,14 +516,22 @@ codeSections = ->
 
 codeSections()
 
+$(document).on "preCompileCoffee", (evt, data) =>
+  resource = data.resource
+  url = resource.url
+  if url is "compute.coffee"
+    Computation.precode()
+    w.setUsed false for id, w of Widgets.widgets
+
+
 Widgets.initialize()
 
 new ComputationEditor
 new ComputationButtons
-
 textEditor = new TextEditor
 $pz.renderHtml = -> textEditor.process()
 
 # Export
+$blab.Widget = Widget
 $blab.Widgets = Widgets 
 

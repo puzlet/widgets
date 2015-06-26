@@ -112,8 +112,8 @@ class Table extends Widget
   
   @initSpec: (id, v) ->
     """
-      headings: null # ["Column 1", "Column 2"]
-      widths: null #[100, 100]
+      headings: []  # ["Column 1", "Column 2"]
+      widths: [100]  #[100, 100]
       pos: 1, order: 1
     """
   

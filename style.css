@@ -15,6 +15,7 @@
   -moz-box-sizing: border-box;
   -webkit-box-sizing: border-box;
   border: 2px solid transparent;  /* should be background */
+  min-height: 40px;
 }
 
 .layout-highlight {

@@ -14,7 +14,7 @@ class Slider extends Widget
     min: 0, max: 10, step: 0.1, init: #{Slider.initVal}
     prompt: "#{id}:"
     unit: ""
-    pos: "#row1 .left", order: 1
+    pos: 1, order: 1
   """
   
   @layoutPreamble:
@@ -115,7 +115,7 @@ class Table extends Widget
       headings: null # ["Column 1", "Column 2"]
       widths: null #[100, 100]
       css: {margin: "0 auto"}
-      pos: "#row1 .left", order: 1
+      pos: 1, order: 1
     """
   
   @layoutPreamble: "#{@handle} = (id, spec) -> new #{@api}(id, spec)"
@@ -203,7 +203,7 @@ class Plot extends Widget
     series: {lines: lineWidth: 1}
     colors: ["red", "blue"]
     grid: {backgroundColor: "white"}
-    pos: "#row1 .left", order: 1
+    pos: 1, order: 1
   """
   
   @layoutPreamble: "#{@handle} = (id, spec) -> new #{@api}(id, spec)"

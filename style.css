@@ -10,6 +10,33 @@
 	/*display: none;*/
 }
 
+.layout-box {
+  box-sizing: border-box;
+  -moz-box-sizing: border-box;
+  -webkit-box-sizing: border-box;
+  border: 2px solid transparent;  /* should be background */
+}
+
+.layout-highlight {
+  background: #FFCC66;
+  border: 2px solid #ff9933;
+  min-height: 40px;
+  border-radius: 10px;
+}
+
+.layout-box-number {
+  position: absolute;
+  width: 25px;
+  height: 25px;
+  background: #669966;
+  color: #FFCC66;
+  text-align: center;
+  vertical-align: middle;
+  margin-top: 5px;
+  margin-left: 435px;  /* should be function of container width */
+  border-radius: 5px;
+}
+
 /*
 div[data-file="layout.coffee"] {
 	border: 3px solid #aaf;

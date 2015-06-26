@@ -4,6 +4,8 @@
 return if $blab?.layoutProcessed
 $blab.layoutProcessed = true
 
+viewPortDisplayed = false
+
 class Widget
   
   @layoutPreamble:
@@ -168,6 +170,9 @@ class WidgetEditor
   setViewPort: (txt) ->
     
     return unless @editor
+    
+    viewPortDisplayed = txt isnt null # ZZZ temp: global
+    Layout.highlight(viewPortDisplayed)
     
     if @firstDisplay
       container = @editor.container
@@ -493,7 +498,7 @@ class Layout
   @pos: (@currentContainer) ->
     
   @render: ->
-    @n = 1
+    n = 1
     widgets = $("#widgets")
     widgets.empty()
     for label, row of @spec
@@ -501,43 +506,42 @@ class Layout
       widgets.append r
       for col in row
         c = $ "<div>", class: col
-        @highlight c
+        c.addClass "layout-box"
+        @appendNum c, n
+        n++
         r.append c
         for d in [1..5]
           o = $ "<div>", class: "order-#{d}"
           c.append o
       r.append($ "<div>", class: "clear")
+    @highlight() if viewPortDisplayed  # ZZZ temp: global
     $.event.trigger "renderedWidgets"
-    
-  @highlight: (c) ->
-    c.css
-      background: "#FFCC66"
-      border: "2px solid #ff9933"
-      minHeight: "40px"
-      borderRadius: 10
+  
+  @appendNum: (c, n) ->
     num = $ "<div>",
-      text: @n
-      css:
-        position: "absolute"
-        width: 25
-        height: 25
-        background: "#669966"
-        color: "#FFCC66"
-        textAlign: "center"
-        verticalAlign: "middle"
-        marginTop: "5px"
-        marginLeft: 440
-        borderRadius: "5px"
-        #marginRight: 0
-        #display: "inline-block"
-        #top: 0
-        #left: 0
-    c.append num 
-    @n++
+      text: n
+      class: "layout-box-number"
+    c.append num
+    num.hide()
+    
+  @highlight: (highlight=true) ->
+    if highlight
+      $(".layout-box").addClass "layout-highlight"
+      $(".layout-box-number").show()
+    else
+      $(".layout-box").removeClass "layout-highlight"
+      $(".layout-box-number").hide()
         
   @append: (element, widget) ->
     if widget?.spec.pos?
-      container = $(widget.spec.pos)
+      pos = widget.spec.pos
+      if Number.isInteger(pos)
+        # ZZZ temporary
+        row = Math.round(pos/2)
+        col = if pos % 2 then "left" else "right"
+        pos = "#row#{row} .#{col}"
+        console.log "POS", pos
+      container = $(pos)
       order = widget.spec.order
       container = $(container).find(".order-"+order) if order?
     else

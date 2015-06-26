@@ -267,14 +267,11 @@ class Plot extends Widget
       d.push l
     
     p = $.plot @plot, d, params
-    o = p.getPlotOffset()
-    console.log "plot offset", @plot.parent().width(), @plot.width(), o.left, o.right
+
     # Center plot in parent container
+    o = p.getPlotOffset()
     m = (@plot.parent().width() - @plot.width() - o.left + o.right)/2
-    console.log "margin", m
     @plot.css marginLeft: m
-    
-    console.log "**** plot width/offset", p.width(), p.offset()
     
   setAxes: (params) ->
     

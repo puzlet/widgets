@@ -493,6 +493,7 @@ class Layout
   @pos: (@currentContainer) ->
     
   @render: ->
+    @n = 1
     widgets = $("#widgets")
     widgets.empty()
     for label, row of @spec
@@ -500,12 +501,39 @@ class Layout
       widgets.append r
       for col in row
         c = $ "<div>", class: col
+        @highlight c
         r.append c
         for d in [1..5]
           o = $ "<div>", class: "order-#{d}"
           c.append o
       r.append($ "<div>", class: "clear")
     $.event.trigger "renderedWidgets"
+    
+  @highlight: (c) ->
+    c.css
+      background: "#FFCC66"
+      border: "2px solid #ff9933"
+      minHeight: "40px"
+      borderRadius: 10
+    num = $ "<div>",
+      text: @n
+      css:
+        position: "absolute"
+        width: 25
+        height: 25
+        background: "#669966"
+        color: "#FFCC66"
+        textAlign: "center"
+        verticalAlign: "middle"
+        marginTop: "5px"
+        marginLeft: 440
+        borderRadius: "5px"
+        #marginRight: 0
+        #display: "inline-block"
+        #top: 0
+        #left: 0
+    c.append num 
+    @n++
         
   @append: (element, widget) ->
     if widget?.spec.pos?

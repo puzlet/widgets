@@ -114,7 +114,6 @@ class Table extends Widget
     """
       headings: null # ["Column 1", "Column 2"]
       widths: null #[100, 100]
-      css: {margin: "0 auto"}
       pos: 1, order: 1
     """
   

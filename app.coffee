@@ -501,18 +501,20 @@ class MarkdownEditor
     
     @resources = $blab.resources
     @widgetsRendered = false
+    @processDeferred = false
     
     onEvt = (evt, f) -> $(document).on(evt, -> f())
     
     onEvt "aceFilesLoaded", =>
       console.log "MarkdownEditor::aceFileLoaded"
       if marked? then @process() else @loadMarked => @init()
-      #if Wiky? then @process() else @loadWiky => @init()
     
     onEvt "renderedWidgets", =>
       console.log "MarkdownEditor::renderedWidgets"
       @widgetsRendered = true
-      #@process()
+      if @processDeferred
+        @process()
+        @processDeferred = false
   
   loadMarked: (callback) ->
     console.log "MarkdownEditor::loadMarked"
@@ -523,14 +525,14 @@ class MarkdownEditor
     console.log "MarkdownEditor::init"
     
     marked.setOptions
-        renderer: new marked.Renderer
-        gfm: true
-        tables: true
-        breaks: false
-        pedantic: false
-        sanitize: true
-        smartLists: true
-        smartypants: false
+      renderer: new marked.Renderer
+      gfm: true
+      tables: true
+      breaks: false
+      pedantic: false
+      sanitize: true
+      smartLists: true
+      smartypants: false
     
     @resource = @resources.find(@filename)
     @editor = @resource?.containers?.fileNodes?[0].editor
@@ -538,7 +540,10 @@ class MarkdownEditor
     @editor.container.removeClass "init-editor"
     @editor.onChange => @render()
     @editor.show false
-    @process() if @widgetsRendered
+    if @widgetsRendered
+      @process()
+    else
+      @processDeferred = true
   
   render: ->
     @renderId ?= null
@@ -553,11 +558,28 @@ class MarkdownEditor
     return unless marked?
     console.log "MarkdownEditor::process/marked"
     @text.empty()
-    @html = marked(@resource.content)
-    @text.append @html
-    @setTitle()
-#    @positionText()
-    @sections @resource.content
+    $(".rendered-markdown").remove()
+    
+    md = @snippets @resource.content
+    
+    # ZZZ needs to happen after widget rendering
+    
+    out = []
+    for m in md
+      if m.pos is 0
+        @text.append m.html
+        out.push m.html
+      else
+        c = $ "<div>",
+          class: "rendered-markdown"
+          css: cursor: "default"
+          click: => @toggle()
+        c.append m.html
+        container = Layout.getContainer(m.pos, m.order)
+        #console.log "*** container", container
+        container.append c
+    out.join "\n"
+    @setTitle out
     $.event.trigger "htmlOutputUpdated"
     
   setTitle: ->
@@ -571,12 +593,10 @@ class MarkdownEditor
     @editorShown ?= false  # ZZZ get from editor show state?
     @editor.show(not @editorShown)
     @editorShown = not @editorShown
-  
-  sections: (file) ->
     
-    console.log "=======file", file
+  snippets: (file) ->
     
-    RE = ///
+    @RE ?= ///
       ^\s*`\s*                   # begin-line, space and quote
       (?:p|pos)\s*:\s*           # p: or pos:
       (\d+)\s*,?\s*              # digits and comma (optional)
@@ -585,49 +605,40 @@ class MarkdownEditor
           (\d+)\s*                 # digits
       )?                         # end optional
       .*`.*$                     # end quote, comment, end-line
-    ///mg                      # multiline & globl
+    ///mg                      # multiline & global
     
     md = []
     
+    # ZZZ method?
     snippet = (found) ->
       start  = found.start ? 0
       source = file[start..found.end]
       start: start
-      pos: found.pos ? 0 
+      pos: parseInt(found.pos ? 0)
       order: found.order ? 1
       source: source
       html: marked source
-        
+      
     # search file for "found" regex
     found = {}
     
-    while (match = RE.exec(file)) is not null
+    while (match = @RE.exec(file)) isnt null
       
-      console.log "==========MATCH"
-    
       # snippet above match
       found.end = match.index-1
       md.push snippet(found)
-      
+    
       # snippet below match
       found =
         start: match.index+match[0].length+1
         pos: match[1]
         order: match[2]
-            
+          
     # complete snippet below last match
     found.end = -1
     md.push snippet(found)
-    
-    # check stuff
-    console.log "*************** md", md
-    #container = $("#app")
-    #for m in md 
-    #    container.append("<p>pos:#{m.pos}, order:#{m.order}</p>")
-    #    container.append(m.html)
-    #    container.append("<hr>")
-  
-  
+    md
+      
 
 class Layout
   
@@ -645,6 +656,7 @@ class Layout
   @pos: (@currentContainer) ->
     
   @render: ->
+    return unless Object.keys(@spec).length
     n = 1
     widgets = $("#widgets")
     widgets.empty()
@@ -681,19 +693,22 @@ class Layout
         
   @append: (element, widget) ->
     if widget?.spec.pos?
-      pos = widget.spec.pos
-      if Number.isInteger(pos)
-        # ZZZ temporary
-        row = Math.round(pos/2)
-        col = if pos % 2 then "left" else "right"
-        pos = "#row#{row} .#{col}"
-        console.log "POS", pos
-      container = $(pos)
-      order = widget.spec.order
-      container = $(container).find(".order-"+order) if order?
+      container = @getContainer widget.spec.pos, widget.spec.order
     else
       container = $(@currentContainer)
     container.append element
+    
+  @getContainer: (pos, order) ->
+    if Number.isInteger(pos)
+      # ZZZ temporary
+      row = Math.round(pos/2)
+      col = if pos % 2 then "left" else "right"
+      position = "#row#{row} .#{col}"
+    else
+      position = pos
+    container = $(position)
+    container = $(container).find(".order-"+order) if order?
+    container
   
   @text: (t) -> @append t
 
@@ -745,9 +760,11 @@ Widgets.initialize()
 
 new ComputationEditor
 new ComputationButtons
-textEditor = new TextEditor
+textEditor = new TextEditor  # ZZZ to deprecate
 markdownEditor = new MarkdownEditor
-$pz.renderHtml = -> textEditor.process()
+$pz.renderHtml = ->
+  textEditor?.process()
+  markdownEditor.process()
 
 # Export
 $blab.Widget = Widget

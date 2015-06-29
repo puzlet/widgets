@@ -1,5 +1,22 @@
 /*------Puzlet------*/
 
+#markdown-editor {
+	position: fixed;
+	bottom: 10px;
+	left: 0px;
+	width: 100%;
+	/*background: green;*/
+	z-index: 10;
+	/*display: none;*/
+}
+
+div[data-file="text.md"] {
+  /*border: 3px solid #aaf;*/
+  width: 880px;
+  margin: 0 auto;
+  /*max-height: 250px;*/
+}
+
 #layout-code-section {
 	position: fixed;
 	bottom: 10px;

@@ -503,6 +503,8 @@ class MarkdownEditor
     @widgetsRendered = false
     @processDeferred = false
     
+    @firstDisplay = true
+    
     onEvt = (evt, f) -> $(document).on(evt, -> f())
     
     onEvt "aceFilesLoaded", =>
@@ -538,10 +540,86 @@ class MarkdownEditor
     @editor.container.removeClass "init-editor"
     @editor.onChange => @render()
     @editor.show false
+    
+    @aceEditor = @editor.editor
+    
+    #@editor.container.css
+    #  maxHeight: ""
+    #  border: "3px solid #aaf"
+      
+    @setViewPort null
+      
+    #@editor.container.parent().hide()
+    
     if @widgetsRendered
       @process()
     else
       @processDeferred = true
+      
+  setViewPort: (txt) ->
+    
+    return unless @editor
+    
+#    viewPortDisplayed = txt isnt null # ZZZ temp: global
+#    Layout.highlight(viewPortDisplayed)
+    
+    if @firstDisplay
+      container = @editor.container
+      container.removeClass "init-editor"  # Done above?
+      container.css maxHeight: "10px"
+      container.parent().show()
+      @editor.show true
+      setTimeout (=> @vp txt), 500
+      @firstDisplay = false
+    else
+      @vp txt
+  
+  vp: (txt) ->
+    
+    @editor.container.css
+      maxHeight: ""
+      border: "3px solid #aaf"
+    
+    @start = null
+    
+    spec = @editor.spec
+    
+    if txt
+      @start = 0
+      @end = 19
+      
+      # code = @editor.code()
+      # lines = code.split "\n"
+      # for line, idx in lines
+      #   if line.indexOf(txt) isnt -1
+      #     @start = idx
+      #   if @start? and line is ""
+      #     @end = idx
+      #     break
+    
+    #@start = 0
+    #@end = 9
+    
+    if @start is null or @start is false
+      @editor.spec.viewPort = false
+      @editor.setHeight()
+      @editor.show false
+      @editor.container.parent().hide()
+      return
+      @start = 1
+      @end = 1
+    
+    @editor.container.parent().show()
+    #@deleteButton()
+    
+    @editor.show true if @start isnt null and @start isnt false
+    spec.viewPort = true
+    spec.startLine = @start+1
+    spec.endLine = @end+1
+    @editor.setViewPort()
+    #@editor.editorContainer[0].onwheel = (evt) -> 
+      #evt.preventDefault()
+      #false
   
   render: ->
     @renderId ?= null
@@ -589,8 +667,9 @@ class MarkdownEditor
   toggle: ->
     return unless @editor
     @editorShown ?= false  # ZZZ get from editor show state?
-    @editor.show(not @editorShown)
+    #@editor.show(not @editorShown)
     @editorShown = not @editorShown
+    @setViewPort(@editorShown)
     
   snippets: (file) ->
     

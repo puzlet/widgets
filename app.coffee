@@ -482,6 +482,91 @@ class TextEditor
     @editorShown = not @editorShown
 
 
+class MarkdownEditor
+  
+  containerId: "#main-markdown"
+  filename: "text.md"
+  markedUrl: "/puzlet/puzlet/js/marked.min.js"
+  posAttr: "data-pos"
+  widgetsId: "#widgets"
+
+  constructor: ->
+    
+    @text = $ @containerId
+    return unless @text.length
+    @text.css(cursor: "default")  # ZZZ do in CSS
+    @text.click => @toggle()
+    
+    @resources = $blab.resources
+    @widgetsRendered = false
+    
+    onEvt = (evt, f) -> $(document).on(evt, -> f())
+    
+    onEvt "aceFilesLoaded", =>
+      console.log "MarkdownEditor::aceFileLoaded"
+      if marked? then @process() else @loadMarked => @init()
+      #if Wiky? then @process() else @loadWiky => @init()
+    
+    onEvt "renderedWidgets", =>
+      console.log "MarkdownEditor::renderedWidgets"
+      @widgetsRendered = true
+      #@process()
+  
+  loadMarked: (callback) ->
+    console.log "MarkdownEditor::loadMarked"
+    @resources.add {url: @markedUrl}
+    @resources.loadUnloaded -> callback?()
+  
+  init: ->
+    console.log "MarkdownEditor::init"
+    
+    marked.setOptions
+        renderer: new marked.Renderer
+        gfm: true
+        tables: true
+        breaks: false
+        pedantic: false
+        sanitize: true
+        smartLists: true
+        smartypants: false
+    
+    @resource = @resources.find(@filename)
+    @editor = @resource?.containers?.fileNodes?[0].editor
+    return unless @editor
+    @editor.container.removeClass "init-editor"
+    @editor.onChange => @render()
+    @editor.show false
+    @process() if @widgetsRendered
+    #console.log "==========Markdown", @resource.content
+  
+  render: ->
+    @renderId ?= null
+    clearTimeout(@renderId) if @renderId
+    @renderId = setTimeout (=>
+      #@resource.content = 
+      @process()
+    ), 500
+  
+  process: ->
+    console.log "MarkdownEditor::process"
+    return unless marked?
+    console.log "MarkdownEditor::process/marked"
+    @text.empty()
+    @text.append marked(@resource.content)
+    
+    #@text.append Wiky.toHtml(@resource.content)
+#    @setTitle()
+#    @positionText()
+    $.event.trigger "htmlOutputUpdated"
+    
+  toggle: ->
+    return unless @editor
+    @editorShown ?= false  # ZZZ get from editor show state?
+    @editor.show(not @editorShown)
+    @editorShown = not @editorShown
+  
+  
+
 class Layout
   
   @shortcuts: """
@@ -599,6 +684,7 @@ Widgets.initialize()
 new ComputationEditor
 new ComputationButtons
 textEditor = new TextEditor
+markdownEditor = new MarkdownEditor
 $pz.renderHtml = -> textEditor.process()
 
 # Export

@@ -15,27 +15,28 @@
   -moz-box-sizing: border-box;
   -webkit-box-sizing: border-box;
   border: 2px solid transparent;  /* should be background */
-  min-height: 40px;
+  min-height: 30px;
 }
 
 .layout-highlight {
   background: #FFEBD6;
   border: 2px solid #FFCC66;
-  min-height: 40px;
-  border-radius: 10px;
+  border-radius: 7px;
+  min-height: 30px;
 }
 
 .layout-box-number {
   position: absolute;
-  width: 25px;
-  height: 25px;
+  width: 20px;
+  height: 20px;
+  line-height: 20px;  /* vertically-center */
   background: #669966;
   color: #FFEBD6;
   text-align: center;
-  vertical-align: middle;
-  margin-top: 5px;
-  margin-left: 435px;  /* should be function of container width */
+  margin-top: 3px;
+  margin-left: 443px;  /* should be function of container width */
   border-radius: 5px;
+  font-size: 10pt;
 }
 
 /*

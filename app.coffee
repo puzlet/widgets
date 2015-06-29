@@ -512,9 +512,7 @@ class MarkdownEditor
     onEvt "renderedWidgets", =>
       console.log "MarkdownEditor::renderedWidgets"
       @widgetsRendered = true
-      if @processDeferred
-        @process()
-        @processDeferred = false
+      @process() if marked?
   
   loadMarked: (callback) ->
     console.log "MarkdownEditor::loadMarked"

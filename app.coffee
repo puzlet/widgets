@@ -446,7 +446,9 @@ class TextEditor
     return unless Wiky?
     console.log "TextEditor::process/Wiky"
     @text.empty()
-    @text.append Wiky.toHtml(@resource.content)
+    html = Wiky.toHtml(@resource.content)
+    return if html is ""
+    @text.append html
     @setTitle()
     @positionText()
     $.event.trigger "htmlOutputUpdated"
@@ -537,7 +539,6 @@ class MarkdownEditor
     @editor.onChange => @render()
     @editor.show false
     @process() if @widgetsRendered
-    #console.log "==========Markdown", @resource.content
   
   render: ->
     @renderId ?= null
@@ -552,18 +553,79 @@ class MarkdownEditor
     return unless marked?
     console.log "MarkdownEditor::process/marked"
     @text.empty()
-    @text.append marked(@resource.content)
-    
-    #@text.append Wiky.toHtml(@resource.content)
-#    @setTitle()
+    @html = marked(@resource.content)
+    @text.append @html
+    @setTitle()
 #    @positionText()
+    @sections @resource.content
     $.event.trigger "htmlOutputUpdated"
+    
+  setTitle: ->
+    headings = $ ":header"
+    return unless headings.length
+    $blab.title = headings[0].innerHTML
+    document.title = $blab.title
     
   toggle: ->
     return unless @editor
     @editorShown ?= false  # ZZZ get from editor show state?
     @editor.show(not @editorShown)
     @editorShown = not @editorShown
+  
+  sections: (file) ->
+    
+    console.log "=======file", file
+    
+    RE = ///
+      ^\s*`\s*                   # begin-line, space and quote
+      (?:p|pos)\s*:\s*           # p: or pos:
+      (\d+)\s*,?\s*              # digits and comma (optional)
+      (?:                        # optional
+          (?:o|ord|order)\s*:\s*   # o:, ord: or order:
+          (\d+)\s*                 # digits
+      )?                         # end optional
+      .*`.*$                     # end quote, comment, end-line
+    ///mg                      # multiline & globl
+    
+    md = []
+    
+    snippet = (found) ->
+      start  = found.start ? 0
+      source = file[start..found.end]
+      start: start
+      pos: found.pos ? 0 
+      order: found.order ? 1
+      source: source
+      html: marked source
+        
+    # search file for "found" regex
+    found = {}
+    
+    while (match = RE.exec(file)) is not null
+      
+      console.log "==========MATCH"
+    
+      # snippet above match
+      found.end = match.index-1
+      md.push snippet(found)
+      
+      # snippet below match
+      found =
+        start: match.index+match[0].length+1
+        pos: match[1]
+        order: match[2]
+            
+    # complete snippet below last match
+    found.end = -1
+    md.push snippet(found)
+    
+    # check stuff
+    console.log "*************** md", md
+    #container = $("#app")
+    #for m in md 
+    #    container.append("<p>pos:#{m.pos}, order:#{m.order}</p>")
+    #    container.append(m.html)
+    #    container.append("<hr>")
   
   
 

@@ -130,6 +130,8 @@ class WidgetEditor
   # move layout to eval area
   # layout fixed pos at bottom of browser window
   
+  @viewPortDisplayed = false
+  
   constructor: (@filename) ->
     
     @firstDisplay = true
@@ -147,6 +149,10 @@ class WidgetEditor
       @currentId = null
       @clickedOnWidget = true
       @setViewPort data.match
+      
+    $(document).on "clickedOnText", =>
+      #@clickedOnWidget = true
+      @setViewPort null
       
     $(document.body).click (evt, data) =>
       setTimeout (=>
@@ -171,8 +177,9 @@ class WidgetEditor
     
     return unless @editor
     
-    viewPortDisplayed = txt isnt null # ZZZ temp: global
-    Layout.highlight(viewPortDisplayed)
+    WidgetEditor.viewPortDisplayed = txt isnt null # ZZZ temp: global
+    $.event.trigger "changeViewPort"
+    #Layout.highlight(WidgetEditor.viewPortDisplayed)
     
     if @firstDisplay
       container = @editor.container
@@ -491,19 +498,28 @@ class MarkdownEditor
   markedUrl: "/puzlet/puzlet/js/marked.min.js"
   posAttr: "data-pos"
   widgetsId: "#widgets"
+  
+  @viewPortDisplayed = false
 
   constructor: ->
     
     @text = $ @containerId
     return unless @text.length
     @text.css(cursor: "default")  # ZZZ do in CSS
-    @text.click => @toggle()
+    # ZZZ do below?
+    @text.click =>
+      $.event.trigger "clickedOnText"
+      @clickedText = true
+      @setViewPort true
+      #@toggle()
     
     @resources = $blab.resources
     @widgetsRendered = false
     @processDeferred = false
     
     @firstDisplay = true
+    
+    @clickedText = false
     
     onEvt = (evt, f) -> $(document).on(evt, -> f())
     
@@ -515,6 +531,25 @@ class MarkdownEditor
       console.log "MarkdownEditor::renderedWidgets"
       @widgetsRendered = true
       @process() if marked?
+      
+    onEvt "clickWidget", =>
+      @clickedOnWidget = true
+      #@currentId = data.id
+      @setViewPort null
+      setTimeout (=> @clickedOnWidget = false), 300
+    
+    onEvt "computationCursorOnWidget", =>
+      #@currentId = null
+      @clickedOnWidget = true
+      @setViewPort null
+      
+    $(document.body).click (evt, data) =>
+      setTimeout (=>
+        unless @clickedOnWidget or @clickedText or $(evt.target).attr("class") is "ace_content"
+          @setViewPort null
+        @clickedOnWidget = false
+        @clickedText = false
+      ), 100
   
   loadMarked: (callback) ->
     console.log "MarkdownEditor::loadMarked"
@@ -560,8 +595,9 @@ class MarkdownEditor
     
     return unless @editor
     
-#    viewPortDisplayed = txt isnt null # ZZZ temp: global
-#    Layout.highlight(viewPortDisplayed)
+    MarkdownEditor.viewPortDisplayed = txt isnt null and txt isnt false # ZZZ temp: global
+    $.event.trigger "changeViewPort"
+    #Layout.highlight(viewPortDisplayed)
     
     if @firstDisplay
       container = @editor.container
@@ -602,7 +638,7 @@ class MarkdownEditor
     
     if @start is null or @start is false
       @editor.spec.viewPort = false
-      @editor.setHeight()
+      @editor.setHeight(20)
       @editor.show false
       @editor.container.parent().hide()
       return
@@ -613,10 +649,12 @@ class MarkdownEditor
     #@deleteButton()
     
     @editor.show true if @start isnt null and @start isnt false
-    spec.viewPort = true
-    spec.startLine = @start+1
-    spec.endLine = @end+1
-    @editor.setViewPort()
+#    spec.viewPort = false
+#    spec.viewPort = true
+#    spec.startLine = @start+1
+#    spec.endLine = @end+1
+#    @editor.setViewPort()
+#    @editor.setHeight(20)
     #@editor.editorContainer[0].onwheel = (evt) -> 
       #evt.preventDefault()
       #false
@@ -649,7 +687,11 @@ class MarkdownEditor
         c = $ "<div>",
           class: "rendered-markdown"
           css: cursor: "default"
-          click: => @toggle()
+          click: =>
+            $.event.trigger "clickedOnText"
+            @clickedText = true
+            @setViewPort true
+            #@toggle()
         c.append m.html
         container = Layout.getContainer(m.pos, m.order)
         #console.log "*** container", container
@@ -664,6 +706,7 @@ class MarkdownEditor
     $blab.title = headings[0].innerHTML
     document.title = $blab.title
     
+  # Unused.
   toggle: ->
     return unless @editor
     @editorShown ?= false  # ZZZ get from editor show state?
@@ -832,6 +875,11 @@ $(document).on "preCompileCoffee", (evt, data) =>
     Computation.precode()
     w.setUsed false for id, w of Widgets.widgets
 
+
+$(document).on "changeViewPort", =>
+  # ZZZ note: get double events
+  #console.log "****VP"
+  Layout.highlight(WidgetEditor.viewPortDisplayed or MarkdownEditor.viewPortDisplayed)
 
 Widgets.initialize()
 

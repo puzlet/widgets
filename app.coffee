@@ -734,7 +734,7 @@ class MarkdownEditor
       source = file[start..found.end]
       start: start
       pos: parseInt(found.pos ? 0)
-      order: parseInt(found.order) ? 1
+      order: parseInt(found.order ? 1)
       source: source
       html: marked source
       

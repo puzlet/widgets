@@ -486,7 +486,7 @@ class MarkdownEditor
     return unless @text.length
     @text.css(cursor: "default")  # ZZZ do in CSS
     # ZZZ do below?
-    @text.click => @trigger "clickedOnText"
+    @text.click => @trigger "clickText", {start: 0}
     
     @resources = $blab.resources
     @widgetsRendered = false
@@ -497,7 +497,7 @@ class MarkdownEditor
     
     @observers =
       setViewPort: []
-      clickedOnText: []
+      clickText: []
     
   setWidgetsRendered: ->
     @widgetsRendered = true
@@ -543,11 +543,11 @@ class MarkdownEditor
     else
       @processDeferred = true
       
-  setViewPort: (txt) ->
+  setViewPort: (start) ->
     
     return unless @editor
     
-    @viewPortDisplayed = txt isnt null and txt isnt false # ZZZ temp: global
+    @viewPortDisplayed = start isnt null and start isnt false # ZZZ temp: global
     @trigger "setViewPort"
     
     if @firstDisplay
@@ -556,38 +556,25 @@ class MarkdownEditor
       container.css maxHeight: "10px"
       container.parent().show()
       @editor.show true
-      setTimeout (=> @vp txt), 500
+      setTimeout (=> @vp start), 500
       @firstDisplay = false
     else
-      @vp txt
+      @vp start
   
-  vp: (txt) ->
+  vp: (start) ->
+    
+    console.log "START", start
     
     @editor.container.css
       maxHeight: ""
       border: "3px solid #aaf"
     
-    @start = null
+    @start = start
     
     spec = @editor.spec
     
-    if txt
-      @start = 0
-      @end = 19
-      
-      # code = @editor.code()
-      # lines = code.split "\n"
-      # for line, idx in lines
-      #   if line.indexOf(txt) isnt -1
-      #     @start = idx
-      #   if @start? and line is ""
-      #     @end = idx
-      #     break
-    
-    #@start = 0
-    #@end = 9
-    
     if @start is null or @start is false
+      console.log "RESET VIEWPORT"
       @editor.spec.viewPort = true
       @editor.spec.startLine = 1
       @editor.spec.endLine = 15
@@ -597,13 +584,50 @@ class MarkdownEditor
       
       @editor.container.parent().hide()
       return
-      @start = 1
-      @end = 1
+      #@start = 1
+      #@end = 1
+      
+    #if @start is 0
+    #  @start = 0
+      #@end = 14
+      #@end = 19
+      
+    if @start>0
+      
+      code = @editor.code()
+      lines = code.split "\n"
+      l = 0
+      for line, idx in lines
+        #console.log "L", line.length
+        l += line.length + 1
+        #console.log "l/s", l, start
+        break if l>start
+      #console.log "idx", idx
+      @start = idx-1
+        #if line.indexOf(txt) isnt -1
+        #  @start = idx
+        #if @start? and line is ""
+        #  @end = idx
+        #  break
+      
+      #@start = 15
+      #@end = 14+14
+      
+    @end = @start+14
     
     @editor.container.parent().show()
     #@deleteButton()
     
-    @editor.show true if @start isnt null and @start isnt false
+    console.log "start/end", @start, @end
+    if @start isnt null and @start isnt false
+      @editor.show true
+      spec.viewPort = true
+      spec.startLine = @start+1
+      spec.endLine = @end+1
+      console.log "viewport", spec
+      @editor.setViewPort()
+      #@editor.setHeight(20)
+      
 #    spec.viewPort = false
 #    spec.viewPort = true
 #    spec.startLine = @start+1
@@ -645,7 +669,9 @@ class MarkdownEditor
         c = $ "<div>",
           class: "rendered-markdown"
           css: cursor: "default"
-          click: => @trigger "clickedOnText"
+          click: => @trigger "clickText", {start: parseInt(c.attr "data-start")}
+        console.log "m", m
+        c.attr("data-pos": m.pos, "data-order": m.order, "data-start": m.start)
         c.append m.html
         container = Layout.getContainer(m.pos, m.order)
         #console.log "*** container", container
@@ -691,7 +717,7 @@ class MarkdownEditor
       source = file[start..found.end]
       start: start
       pos: parseInt(found.pos ? 0)
-      order: found.order ? 1
+      order: parseInt(found.order) ? 1
       source: source
       html: marked source
       
@@ -882,10 +908,10 @@ class App
       markdownEditor.setViewPort null
       setTimeout (=> @clickedOnComponent = false), 300
     
-    markdownEditor.on "clickedOnText", =>
+    markdownEditor.on "clickText", (data) =>
       @clickedOnComponent = true
       widgetEditor.setViewPort null
-      markdownEditor.setViewPort true
+      markdownEditor.setViewPort data.start
     
     $(document.body).click (evt, data) =>
       setTimeout (=>

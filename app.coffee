@@ -637,9 +637,13 @@ class MarkdownEditor
     #@end = 9
     
     if @start is null or @start is false
-      @editor.spec.viewPort = false
-      @editor.setHeight(20)
+      @editor.spec.viewPort = true
+      @editor.spec.startLine = 1
+      @editor.spec.endLine = 20
+      @editor.setViewPort()
+      #@editor.setHeight(20)
       @editor.show false
+
       @editor.container.parent().hide()
       return
       @start = 1

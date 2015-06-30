@@ -475,7 +475,7 @@ class TextEditor
 class MarkdownEditor
   
   containerId: "#main-markdown"
-  filename: "text.md"
+  filename: "blab.md"
   markedUrl: "/puzlet/puzlet/js/marked.min.js"
   posAttr: "data-pos"
   widgetsId: "#widgets"
@@ -485,7 +485,6 @@ class MarkdownEditor
     @text = $ @containerId
     return unless @text.length
     @text.css(cursor: "default")  # ZZZ do in CSS
-    # ZZZ do below?
     @text.click => @trigger "clickText", {start: 0}
     
     @resources = $blab.resources
@@ -528,15 +527,7 @@ class MarkdownEditor
     @editor.onChange => @render()
     @editor.show false
     
-    @aceEditor = @editor.editor
-    
-    #@editor.container.css
-    #  maxHeight: ""
-    #  border: "3px solid #aaf"
-      
     @setViewPort null
-      
-    #@editor.container.parent().hide()
     
     if @widgetsRendered
       @process()
@@ -563,8 +554,6 @@ class MarkdownEditor
   
   vp: (start) ->
     
-    console.log "START", start
-    
     @editor.container.css
       maxHeight: ""
       border: "3px solid #aaf"
@@ -574,23 +563,14 @@ class MarkdownEditor
     spec = @editor.spec
     
     if @start is null or @start is false
-      console.log "RESET VIEWPORT"
       @editor.spec.viewPort = true
       @editor.spec.startLine = 1
       @editor.spec.endLine = 15
       @editor.setViewPort()
-      #@editor.setHeight(20)
       @editor.show false
       
       @editor.container.parent().hide()
       return
-      #@start = 1
-      #@end = 1
-      
-    #if @start is 0
-    #  @start = 0
-      #@end = 14
-      #@end = 19
       
     if @start>0
       
@@ -598,25 +578,13 @@ class MarkdownEditor
       lines = code.split "\n"
       l = 0
       for line, idx in lines
-        #console.log "L", line.length
         l += line.length + 1
-        #console.log "l/s", l, start
         break if l>start
-      #console.log "idx", idx
       @start = idx-1
-        #if line.indexOf(txt) isnt -1
-        #  @start = idx
-        #if @start? and line is ""
-        #  @end = idx
-        #  break
-      
-      #@start = 15
-      #@end = 14+14
-      
+
     @end = @start+14
     
     @editor.container.parent().show()
-    #@deleteButton()
     
     console.log "start/end", @start, @end
     if @start isnt null and @start isnt false
@@ -626,18 +594,7 @@ class MarkdownEditor
       spec.endLine = @end+1
       console.log "viewport", spec
       @editor.setViewPort()
-      #@editor.setHeight(20)
       
-#    spec.viewPort = false
-#    spec.viewPort = true
-#    spec.startLine = @start+1
-#    spec.endLine = @end+1
-#    @editor.setViewPort()
-#    @editor.setHeight(20)
-    #@editor.editorContainer[0].onwheel = (evt) -> 
-      #evt.preventDefault()
-      #false
-  
   render: ->
     @renderId ?= null
     clearTimeout(@renderId) if @renderId
@@ -661,7 +618,6 @@ class MarkdownEditor
     # ZZZ needs to happen after widget rendering
     
     out = []
-    console.log "======MARKDOWN", md
     
     newText = (container, m) =>
       c = $ "<div>",
@@ -670,6 +626,7 @@ class MarkdownEditor
         click: (evt) =>
           @trigger "clickText", {start: parseInt(c.attr "data-start")}
       c.attr("data-pos": m.pos, "data-order": m.order, "data-start": m.start)
+      console.log "*** MD", m
       c.append m.html
       container.append c
       c
@@ -681,37 +638,15 @@ class MarkdownEditor
       else
         container = Layout.getContainer(m.pos, m.order)
         newText(container, m)
-        #c = $ "<div>",
-        #  class: "rendered-markdown"
-        #  css: cursor: "default"
-        #  click: (evt) =>
-        #    console.log "******** evt", evt
-        #    @trigger "clickText", {start: parseInt(c.attr "data-start")}
-        console.log "m", m
-        #c.attr("data-pos": m.pos, "data-order": m.order, "data-start": m.start)
-        #c.append m.html
-        #container = Layout.getContainer(m.pos, m.order)
-        #console.log "*** container", container
-        #container.append c
     out.join "\n"
     @setTitle out
     $.event.trigger "htmlOutputUpdated"
     @trigger "setViewPort"
-    #$.event.trigger "changeViewPort"  # ZZZ hack
   
   setTitle: ->
     headings = $ ":header"
-    return unless headings.length
-    $blab.title = headings[0].innerHTML
+    $blab.title = if headings.length then headings[0].innerHTML else "Puzlet"
     document.title = $blab.title
-  
-  # Unused.
-  toggle: ->
-    return unless @editor
-    @editorShown ?= false  # ZZZ get from editor show state?
-    #@editor.show(not @editorShown)
-    @editorShown = not @editorShown
-    @setViewPort(@editorShown)
   
   snippets: (file) ->
     

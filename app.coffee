@@ -639,7 +639,7 @@ class MarkdownEditor
     if @start is null or @start is false
       @editor.spec.viewPort = true
       @editor.spec.startLine = 1
-      @editor.spec.endLine = 20
+      @editor.spec.endLine = 15
       @editor.setViewPort()
       #@editor.setHeight(20)
       @editor.show false
@@ -703,6 +703,7 @@ class MarkdownEditor
     out.join "\n"
     @setTitle out
     $.event.trigger "htmlOutputUpdated"
+    $.event.trigger "changeViewPort"  # ZZZ hack
     
   setTitle: ->
     headings = $ ":header"
@@ -882,7 +883,7 @@ $(document).on "preCompileCoffee", (evt, data) =>
 
 $(document).on "changeViewPort", =>
   # ZZZ note: get double events
-  #console.log "****VP"
+  console.log "****VP", WidgetEditor.viewPortDisplayed or MarkdownEditor.viewPortDisplayed
   Layout.highlight(WidgetEditor.viewPortDisplayed or MarkdownEditor.viewPortDisplayed)
 
 Widgets.initialize()

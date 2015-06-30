@@ -4,9 +4,6 @@
 return if $blab?.layoutProcessed
 $blab.layoutProcessed = true
 
-# Delete:
-#viewPortDisplayed = false
-
 class Widget
   
   @layoutPreamble:
@@ -131,56 +128,31 @@ class WidgetEditor
   # move layout to eval area
   # layout fixed pos at bottom of browser window
   
-  @viewPortDisplayed = false
-  
   constructor: (@filename) ->
     
     @firstDisplay = true
     @currentLine = null  # compute.coffee
+    @viewPortDisplayed = false
     
-    @clickedOnWidget = false
-    
-    $(document).on "clickWidget", (evt, data) =>
-      @clickedOnWidget = true
-      @currentId = data.id
-      @setViewPort data.type + " " + "\"#{data.id}\""
-      setTimeout (=> @clickedOnWidget = false), 300
-    
-    $(document).on "computationCursorOnWidget", (evt, data) =>
-      @currentId = null
-      @clickedOnWidget = true
-      @setViewPort data.match
-      
-    $(document).on "clickedOnText", =>
-      #@clickedOnWidget = true
-      @setViewPort null
-      
-    $(document.body).click (evt, data) =>
-      setTimeout (=>
-        unless @clickedOnWidget or $(evt.target).attr("class") is "ace_content"
-          @setViewPort null
-        @clickedOnWidget = false
-      ), 100
+    @observers =
+      setViewPort: []
+      clickDelete: []
       
   init: (@resource) ->
     return if @editor
     @editor = @resource.containers?.fileNodes?[0].editor
     return unless @editor
     @aceEditor = @editor.editor
-    
     @setViewPort null
-    
     # ZZZ init folding here?
-    
     @editor.onChange => 
       
   setViewPort: (txt) ->
     
     return unless @editor
     
-    WidgetEditor.viewPortDisplayed = txt isnt null # ZZZ temp: global
-    $.event.trigger "changeViewPort"
-    #Layout.highlight(WidgetEditor.viewPortDisplayed)
+    @viewPortDisplayed = txt isnt null # ZZZ temp: global
+    @trigger "setViewPort"
     
     if @firstDisplay
       container = @editor.container
@@ -260,7 +232,7 @@ class WidgetEditor
         @aceEditor.removeLines()
         @editor.run()
         @editor.container.parent().hide()
-        @clickedOnWidget = true
+        @trigger "clickDelete"
       
     @del.append @delButton
       
@@ -279,6 +251,10 @@ class WidgetEditor
     session.on "changeFold", ->
       ed.setHeight session.getScreenLength()
     session.foldAll(1, 10000, 0)
+    
+  on: (evt, observer) -> @observers[evt].push observer
+  
+  trigger: (evt, data) -> observer(data) for observer in @observers[evt]
 
 
 class Computation
@@ -324,6 +300,9 @@ class ComputationEditor
     
     @currentLine = null
     
+    @observers =
+      cursorOnWidget: []
+    
     $(document).on "preCompileCoffee", (evt, data) =>
       resource = data.resource
       url = resource?.url
@@ -334,6 +313,7 @@ class ComputationEditor
       #@currentLine = null
       @setLine() if data.url is @filename
       
+    # No longer used
     $(document).on "clickComputationButton", (evt, data) =>
       @aceEditor.focus()
       @aceEditor.insert @code[data.button]+"\n"
@@ -375,7 +355,11 @@ class ComputationEditor
     widgetRegex = /(slider|table|plot|bar) "([^"]*)"/
     matchArray = widgetRegex.exec(line)
     match = if matchArray is null then null else matchArray[0]
-    $.event.trigger "computationCursorOnWidget", {match}
+    @trigger "cursorOnWidget", {match}
+    
+  on: (evt, observer) -> @observers[evt].push observer
+  
+  trigger: (evt, data) -> observer(data) for observer in @observers[evt]
     
 
 
@@ -414,18 +398,11 @@ class TextEditor
     
     @resources = $blab.resources
     @widgetsRendered = false
-    
-    onEvt = (evt, f) -> $(document).on(evt, -> f())
-    
-    onEvt "aceFilesLoaded", =>
-      console.log "TextEditor::aceFileLoaded"
-      if Wiky? then @process() else @loadWiky => @init()
-    
-    onEvt "renderedWidgets", =>
-      console.log "TextEditor::renderedWidgets"
-      @widgetsRendered = true
-      @process()
-    
+      
+  setWidgetsRendered: ->
+    @widgetsRendered = true
+    @process() if Wiky?
+  
   loadWiky: (callback) ->
     console.log "TextEditor::loadWiky"
     @resources.add {url: @wikyUrl}
@@ -451,7 +428,10 @@ class TextEditor
     
   process: ->
     console.log "TextEditor::process"
-    return unless Wiky?
+    unless Wiky?
+      @loadWiky => @init()
+      return
+    #return unless Wiky?
     console.log "TextEditor::process/Wiky"
     @text.empty()
     html = Wiky.toHtml(@resource.content)
@@ -500,58 +480,29 @@ class MarkdownEditor
   posAttr: "data-pos"
   widgetsId: "#widgets"
   
-  @viewPortDisplayed = false
-
   constructor: ->
     
     @text = $ @containerId
     return unless @text.length
     @text.css(cursor: "default")  # ZZZ do in CSS
     # ZZZ do below?
-    @text.click =>
-      $.event.trigger "clickedOnText"
-      @clickedText = true
-      @setViewPort true
-      #@toggle()
+    @text.click => @trigger "clickedOnText"
     
     @resources = $blab.resources
     @widgetsRendered = false
     @processDeferred = false
     
     @firstDisplay = true
+    @viewPortDisplayed = false
     
-    @clickedText = false
+    @observers =
+      setViewPort: []
+      clickedOnText: []
     
-    onEvt = (evt, f) -> $(document).on(evt, -> f())
+  setWidgetsRendered: ->
+    @widgetsRendered = true
+    @process() if marked?
     
-    onEvt "aceFilesLoaded", =>
-      console.log "MarkdownEditor::aceFileLoaded"
-      if marked? then @process() else @loadMarked => @init()
-    
-    onEvt "renderedWidgets", =>
-      console.log "MarkdownEditor::renderedWidgets"
-      @widgetsRendered = true
-      @process() if marked?
-      
-    onEvt "clickWidget", =>
-      @clickedOnWidget = true
-      #@currentId = data.id
-      @setViewPort null
-      setTimeout (=> @clickedOnWidget = false), 300
-    
-    onEvt "computationCursorOnWidget", =>
-      #@currentId = null
-      @clickedOnWidget = true
-      @setViewPort null
-      
-    $(document.body).click (evt, data) =>
-      setTimeout (=>
-        unless @clickedOnWidget or @clickedText or $(evt.target).attr("class") is "ace_content"
-          @setViewPort null
-        @clickedOnWidget = false
-        @clickedText = false
-      ), 100
-  
   loadMarked: (callback) ->
     console.log "MarkdownEditor::loadMarked"
     @resources.add {url: @markedUrl}
@@ -596,9 +547,8 @@ class MarkdownEditor
     
     return unless @editor
     
-    MarkdownEditor.viewPortDisplayed = txt isnt null and txt isnt false # ZZZ temp: global
-    $.event.trigger "changeViewPort"
-    #Layout.highlight(viewPortDisplayed)
+    @viewPortDisplayed = txt isnt null and txt isnt false # ZZZ temp: global
+    @trigger "setViewPort"
     
     if @firstDisplay
       container = @editor.container
@@ -644,7 +594,7 @@ class MarkdownEditor
       @editor.setViewPort()
       #@editor.setHeight(20)
       @editor.show false
-
+      
       @editor.container.parent().hide()
       return
       @start = 1
@@ -674,7 +624,10 @@ class MarkdownEditor
   
   process: ->
     console.log "MarkdownEditor::process"
-    return unless marked?
+    unless marked?
+      @loadMarked => @init()
+      return
+    #return unless marked?
     console.log "MarkdownEditor::process/marked"
     @text.empty()
     $(".rendered-markdown").remove()
@@ -692,11 +645,7 @@ class MarkdownEditor
         c = $ "<div>",
           class: "rendered-markdown"
           css: cursor: "default"
-          click: =>
-            $.event.trigger "clickedOnText"
-            @clickedText = true
-            @setViewPort true
-            #@toggle()
+          click: => @trigger "clickedOnText"
         c.append m.html
         container = Layout.getContainer(m.pos, m.order)
         #console.log "*** container", container
@@ -704,14 +653,15 @@ class MarkdownEditor
     out.join "\n"
     @setTitle out
     $.event.trigger "htmlOutputUpdated"
-    $.event.trigger "changeViewPort"  # ZZZ hack
-    
+    @trigger "setViewPort"
+    #$.event.trigger "changeViewPort"  # ZZZ hack
+  
   setTitle: ->
     headings = $ ":header"
     return unless headings.length
     $blab.title = headings[0].innerHTML
     document.title = $blab.title
-    
+  
   # Unused.
   toggle: ->
     return unless @editor
@@ -719,7 +669,7 @@ class MarkdownEditor
     #@editor.show(not @editorShown)
     @editorShown = not @editorShown
     @setViewPort(@editorShown)
-    
+  
   snippets: (file) ->
     
     @RE ?= ///
@@ -764,7 +714,12 @@ class MarkdownEditor
     found.end = -1
     md.push snippet(found)
     md
-      
+    
+  on: (evt, observer) -> @observers[evt].push observer
+  
+  trigger: (evt, data) -> observer(data) for observer in @observers[evt]
+    
+
 
 class Layout
   
@@ -776,6 +731,9 @@ class Layout
   
   @spec: {}
   @currentContainer: null
+  
+  @observers:
+    renderedWidgets: []
   
   @set: (@spec) ->
   
@@ -800,7 +758,8 @@ class Layout
           c.append o
       r.append($ "<div>", class: "clear")
     @highlight() if WidgetEditor.viewPortDisplayed or MarkdownEditor.viewPortDisplayed  # ZZZ temp
-    $.event.trigger "renderedWidgets"
+    @trigger "renderedWidgets"
+    #$.event.trigger "renderedWidgets"
   
   @appendNum: (c, n) ->
     num = $ "<div>",
@@ -837,6 +796,11 @@ class Layout
     container
   
   @text: (t) -> @append t
+  
+  @on: (evt, observer) -> @observers[evt].push observer
+  
+  @trigger: (evt, data) -> observer(data) for observer in @observers[evt]
+  
 
 
 codeSections = ->
@@ -879,6 +843,7 @@ class App
     
     codeSections()
     
+    # ZZZ should be method in Widgets?
     $(document).on "preCompileCoffee", (evt, data) =>
       resource = data.resource
       url = resource.url
@@ -886,22 +851,70 @@ class App
         Computation.precode()
         w.setUsed false for id, w of Widgets.widgets
     
-    $(document).on "changeViewPort", =>
-      # ZZZ note: get double events
-      console.log "****VP", WidgetEditor.viewPortDisplayed or MarkdownEditor.viewPortDisplayed
-      Layout.highlight(WidgetEditor.viewPortDisplayed or MarkdownEditor.viewPortDisplayed)
-
     Widgets.initialize()
-
+    
+    widgetEditor = Widgets.widgetEditor
+    
     computationEditor = new ComputationEditor
+    
+    # ZZZ not used
     new ComputationButtons
+    
     textEditor = new TextEditor  # ZZZ to deprecate
     markdownEditor = new MarkdownEditor
+    
     $pz.renderHtml = ->
       textEditor?.process()
       markdownEditor.process()
+    
+    @clickedOnComponent = false
+    
+    computationEditor.on "cursorOnWidget", (data) =>
+      @clickedOnComponent = true
+      widgetEditor.currentId = null
+      widgetEditor.setViewPort data.match
+      markdownEditor.setViewPort null
+    
+    $(document).on "clickWidget", (evt, data) =>
+      @clickedOnComponent = true
+      widgetEditor.currentId = data.id
+      widgetEditor.setViewPort data.type + " " + "\"#{data.id}\""
+      markdownEditor.setViewPort null
+      setTimeout (=> @clickedOnComponent = false), 300
+    
+    markdownEditor.on "clickedOnText", =>
+      @clickedOnComponent = true
+      widgetEditor.setViewPort null
+      markdownEditor.setViewPort true
+    
+    $(document.body).click (evt, data) =>
+      setTimeout (=>
+        unless @clickedOnComponent or $(evt.target).attr("class") is "ace_content"
+          widgetEditor.setViewPort null
+          markdownEditor.setViewPort null
+        @clickedOnComponent = false
+      ), 100
+    
+    widgetEditor.on "clickDelete", => @clickedOnComponent = true
+    
+    highlightLayout = ->
+      Layout.highlight(widgetEditor.viewPortDisplayed or markdownEditor.viewPortDisplayed)
+    
+    widgetEditor.on "setViewPort", => highlightLayout()
+    markdownEditor.on "setViewPort", => highlightLayout()
+    
+    Layout.on "renderedWidgets", =>
+      console.log "App::renderedWidgets"
+      textEditor.setWidgetsRendered()
+      markdownEditor.setWidgetsRendered()
       
+    $(document).on "aceFilesLoaded", =>
+      textEditor.process()
+      markdownEditor.process()
+    
+
 new App
+
 
 # Export
 $blab.Widget = Widget

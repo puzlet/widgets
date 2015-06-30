@@ -4,7 +4,8 @@
 return if $blab?.layoutProcessed
 $blab.layoutProcessed = true
 
-viewPortDisplayed = false
+# Delete:
+#viewPortDisplayed = false
 
 class Widget
   
@@ -798,7 +799,7 @@ class Layout
           o = $ "<div>", class: "order-#{d}"
           c.append o
       r.append($ "<div>", class: "clear")
-    @highlight() if viewPortDisplayed  # ZZZ temp: global
+    @highlight() if WidgetEditor.viewPortDisplayed or MarkdownEditor.viewPortDisplayed  # ZZZ temp
     $.event.trigger "renderedWidgets"
   
   @appendNum: (c, n) ->
@@ -871,30 +872,36 @@ codeSections = ->
       predef.toggle(500)
       toggleHeading()
 
-codeSections()
 
-$(document).on "preCompileCoffee", (evt, data) =>
-  resource = data.resource
-  url = resource.url
-  if url is "compute.coffee"
-    Computation.precode()
-    w.setUsed false for id, w of Widgets.widgets
+class App
+  
+  constructor: ->
+    
+    codeSections()
+    
+    $(document).on "preCompileCoffee", (evt, data) =>
+      resource = data.resource
+      url = resource.url
+      if url is "compute.coffee"
+        Computation.precode()
+        w.setUsed false for id, w of Widgets.widgets
+    
+    $(document).on "changeViewPort", =>
+      # ZZZ note: get double events
+      console.log "****VP", WidgetEditor.viewPortDisplayed or MarkdownEditor.viewPortDisplayed
+      Layout.highlight(WidgetEditor.viewPortDisplayed or MarkdownEditor.viewPortDisplayed)
 
+    Widgets.initialize()
 
-$(document).on "changeViewPort", =>
-  # ZZZ note: get double events
-  console.log "****VP", WidgetEditor.viewPortDisplayed or MarkdownEditor.viewPortDisplayed
-  Layout.highlight(WidgetEditor.viewPortDisplayed or MarkdownEditor.viewPortDisplayed)
-
-Widgets.initialize()
-
-new ComputationEditor
-new ComputationButtons
-textEditor = new TextEditor  # ZZZ to deprecate
-markdownEditor = new MarkdownEditor
-$pz.renderHtml = ->
-  textEditor?.process()
-  markdownEditor.process()
+    computationEditor = new ComputationEditor
+    new ComputationButtons
+    textEditor = new TextEditor  # ZZZ to deprecate
+    markdownEditor = new MarkdownEditor
+    $pz.renderHtml = ->
+      textEditor?.process()
+      markdownEditor.process()
+      
+new App
 
 # Export
 $blab.Widget = Widget

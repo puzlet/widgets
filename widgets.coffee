@@ -216,7 +216,7 @@ class Plot extends Widget
     
     super @p1, @p2
     
-    {@width, @height, @xlabel, @ylabel} = @spec
+    {@width, @height, @xlabel, @ylabel, @css} = @spec
     
     @plot = $("#"+@id)
     @plot.remove() if @plot.length
@@ -229,6 +229,8 @@ class Plot extends Widget
       click: (e, ui) =>
         $.event.trigger "clickWidget", type: "plot", id: @id
         
+    @plot.css(@css) if @css
+    
     @mainContainer = @plot
     Widgets.append @id, this, @plot
     @setVal([[0], [0]])

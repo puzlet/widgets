@@ -381,6 +381,7 @@ class ComputationButtons
   
 
 
+# To deprecate (use MarkdownEditor instead)
 class TextEditor
   
   containerId: "#main-text"
@@ -479,6 +480,7 @@ class MarkdownEditor
   markedUrl: "/puzlet/puzlet/js/marked.min.js"
   posAttr: "data-pos"
   widgetsId: "#widgets"
+  editorHeight: 15
   
   constructor: ->
     
@@ -489,7 +491,6 @@ class MarkdownEditor
     
     @resources = $blab.resources
     @widgetsRendered = false
-    @processDeferred = false
     
     @firstDisplay = true
     @viewPortDisplayed = false
@@ -501,11 +502,6 @@ class MarkdownEditor
   setWidgetsRendered: ->
     @widgetsRendered = true
     @process() if marked?
-    
-  loadMarked: (callback) ->
-    console.log "MarkdownEditor::loadMarked"
-    @resources.add {url: @markedUrl}
-    @resources.loadUnloaded -> callback?()
   
   init: ->
     console.log "MarkdownEditor::init"
@@ -529,16 +525,57 @@ class MarkdownEditor
     
     @setViewPort null
     
-    if @widgetsRendered
-      @process()
-    else
-      @processDeferred = true
+    @process() if @widgetsRendered
+  
+  process: ->
+    console.log "MarkdownEditor::process"
+    unless marked?
+      @loadMarked => @init()
+      return
+    console.log "MarkdownEditor::process/marked"
+    @text.empty()
+    $(".rendered-markdown").remove()
+    
+    md = @snippets @resource.content
+    
+    out = []
+    for m in md
+      if m.pos is 0
+        @text.append m.html
+        out.push m.html
+      else
+        container = Layout.getContainer(m.pos, m.order)
+        @markdownDiv(container, m)
+    @setTitle(out.join "\n")
+    $.event.trigger "htmlOutputUpdated"
+    @trigger "setViewPort"
+    
+  loadMarked: (callback) ->
+    console.log "MarkdownEditor::loadMarked"
+    @resources.add {url: @markedUrl}
+    @resources.loadUnloaded -> callback?()
+    
+  markdownDiv: (container, m) =>
+    div = $ "<div>",
+      class: "rendered-markdown"
+      css: cursor: "default"
+      click: (evt) =>
+        @trigger "clickText", {start: parseInt(div.attr "data-start")}
+    div.attr("data-pos": m.pos, "data-order": m.order, "data-start": m.start)
+    div.append m.html
+    container.append div
+    div
+    
+  setTitle: ->
+    headings = $ ":header"
+    $blab.title = if headings.length then headings[0].innerHTML else "Puzlet"
+    document.title = $blab.title
       
   setViewPort: (start) ->
     
     return unless @editor
     
-    @viewPortDisplayed = start isnt null and start isnt false # ZZZ temp: global
+    @viewPortDisplayed = start isnt null and start isnt false
     @trigger "setViewPort"
     
     if @firstDisplay
@@ -552,101 +589,47 @@ class MarkdownEditor
     else
       @vp start
   
-  vp: (start) ->
+  vp: (startChar) ->
     
     @editor.container.css
       maxHeight: ""
       border: "3px solid #aaf"
     
-    @start = start
-    
     spec = @editor.spec
+    spec.viewPort = true
     
-    if @start is null or @start is false
-      @editor.spec.viewPort = true
-      @editor.spec.startLine = 1
-      @editor.spec.endLine = 15
+    if startChar is null or startChar is false
+      spec.startLine = 1
+      spec.endLine = @editorHeight
       @editor.setViewPort()
       @editor.show false
-      
       @editor.container.parent().hide()
       return
       
-    if @start>0
-      
-      code = @editor.code()
-      lines = code.split "\n"
-      l = 0
-      for line, idx in lines
-        l += line.length + 1
-        break if l>start
-      @start = idx-1
-
-    @end = @start+14
+    @start = (if startChar is 0 then 0 else @getStartLine startChar)
+    @end = @start + @editorHeight - 1
     
     @editor.container.parent().show()
+    @editor.show true
+    spec.startLine = @start + 1
+    spec.endLine = @end + 1
+    @editor.setViewPort()
     
-    console.log "start/end", @start, @end
-    if @start isnt null and @start isnt false
-      @editor.show true
-      spec.viewPort = true
-      spec.startLine = @start+1
-      spec.endLine = @end+1
-      console.log "viewport", spec
-      @editor.setViewPort()
-      
+  getStartLine: (startChar) ->
+    code = @editor.code()
+    lines = code.split "\n"
+    l = 0
+    for line, idx in lines
+      l += line.length + 1
+      break if l>startChar
+    idx - 1
+  
   render: ->
     @renderId ?= null
     clearTimeout(@renderId) if @renderId
     @renderId = setTimeout (=>
-      #@resource.content = 
       @process()
     ), 500
-  
-  process: ->
-    console.log "MarkdownEditor::process"
-    unless marked?
-      @loadMarked => @init()
-      return
-    #return unless marked?
-    console.log "MarkdownEditor::process/marked"
-    @text.empty()
-    $(".rendered-markdown").remove()
-    
-    md = @snippets @resource.content
-    
-    # ZZZ needs to happen after widget rendering
-    
-    out = []
-    
-    newText = (container, m) =>
-      c = $ "<div>",
-        class: "rendered-markdown"
-        css: cursor: "default"
-        click: (evt) =>
-          @trigger "clickText", {start: parseInt(c.attr "data-start")}
-      c.attr("data-pos": m.pos, "data-order": m.order, "data-start": m.start)
-      console.log "*** MD", m
-      c.append m.html
-      container.append c
-      c
-    
-    for m in md
-      if m.pos is 0
-        @text.append m.html
-        out.push m.html
-      else
-        container = Layout.getContainer(m.pos, m.order)
-        newText(container, m)
-    out.join "\n"
-    @setTitle out
-    $.event.trigger "htmlOutputUpdated"
-    @trigger "setViewPort"
-  
-  setTitle: ->
-    headings = $ ":header"
-    $blab.title = if headings.length then headings[0].innerHTML else "Puzlet"
-    document.title = $blab.title
   
   snippets: (file) ->
     
@@ -838,11 +821,11 @@ class App
     # ZZZ not used
     new ComputationButtons
     
-    textEditor = new TextEditor  # ZZZ to deprecate
+    #textEditor = new TextEditor  # ZZZ to deprecate
     markdownEditor = new MarkdownEditor
     
     $pz.renderHtml = ->
-      textEditor?.process()
+      #textEditor?.process()
       markdownEditor.process()
     
     @clickedOnComponent = false
@@ -861,7 +844,6 @@ class App
       setTimeout (=> @clickedOnComponent = false), 300
     
     markdownEditor.on "clickText", (data) =>
-      console.log "%%%%%%%% clickText", data
       @clickedOnComponent = true
       widgetEditor.setViewPort null
       markdownEditor.setViewPort data.start
@@ -884,11 +866,11 @@ class App
     
     Layout.on "renderedWidgets", =>
       console.log "App::renderedWidgets"
-      textEditor.setWidgetsRendered()
+      #textEditor.setWidgetsRendered()
       markdownEditor.setWidgetsRendered()
       
     $(document).on "aceFilesLoaded", =>
-      textEditor.process()
+      #textEditor.process()
       markdownEditor.process()
     
 

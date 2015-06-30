@@ -661,21 +661,38 @@ class MarkdownEditor
     # ZZZ needs to happen after widget rendering
     
     out = []
+    console.log "======MARKDOWN", md
+    
+    newText = (container, m) =>
+      c = $ "<div>",
+        class: "rendered-markdown"
+        css: cursor: "default"
+        click: (evt) =>
+          @trigger "clickText", {start: parseInt(c.attr "data-start")}
+      c.attr("data-pos": m.pos, "data-order": m.order, "data-start": m.start)
+      c.append m.html
+      container.append c
+      c
+    
     for m in md
       if m.pos is 0
         @text.append m.html
         out.push m.html
       else
-        c = $ "<div>",
-          class: "rendered-markdown"
-          css: cursor: "default"
-          click: => @trigger "clickText", {start: parseInt(c.attr "data-start")}
-        console.log "m", m
-        c.attr("data-pos": m.pos, "data-order": m.order, "data-start": m.start)
-        c.append m.html
         container = Layout.getContainer(m.pos, m.order)
+        newText(container, m)
+        #c = $ "<div>",
+        #  class: "rendered-markdown"
+        #  css: cursor: "default"
+        #  click: (evt) =>
+        #    console.log "******** evt", evt
+        #    @trigger "clickText", {start: parseInt(c.attr "data-start")}
+        console.log "m", m
+        #c.attr("data-pos": m.pos, "data-order": m.order, "data-start": m.start)
+        #c.append m.html
+        #container = Layout.getContainer(m.pos, m.order)
         #console.log "*** container", container
-        container.append c
+        #container.append c
     out.join "\n"
     @setTitle out
     $.event.trigger "htmlOutputUpdated"
@@ -909,6 +926,7 @@ class App
       setTimeout (=> @clickedOnComponent = false), 300
     
     markdownEditor.on "clickText", (data) =>
+      console.log "%%%%%%%% clickText", data
       @clickedOnComponent = true
       widgetEditor.setViewPort null
       markdownEditor.setViewPort data.start

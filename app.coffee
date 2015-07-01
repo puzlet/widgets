@@ -352,7 +352,7 @@ class ComputationEditor
     code = @editor.code()
     lines = code.split "\n"
     line = lines[@currentLine]  # ZZZ easier way?  pass current line - ace method?
-    widgetRegex = /(slider|table|plot|bar) "([^"]*)"/
+    widgetRegex = /(slider|table|plot|bar|bar2) "([^"]*)"/
     matchArray = widgetRegex.exec(line)
     match = if matchArray is null then null else matchArray[0]
     id = if matchArray is null then null else matchArray[2]

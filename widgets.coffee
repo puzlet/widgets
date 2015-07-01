@@ -320,6 +320,5 @@ class AxesLabels
       marginLeft: "-27px"
       marginTop: (@yaxisLabel.width() / 2 - 10) + "px"
 
-
 Widgets.register [Slider, Table, Plot]
 

@@ -78,6 +78,8 @@ class Slider extends Widget
     @mainContainer = @outer
     Widgets.append @id, this, @outer  # not now: Superclass method
     
+    @fast = @spec.fast ? true
+    
     @slider = @sliderContainer.slider
       #orientation: "vertical"
       range: "min"
@@ -88,8 +90,10 @@ class Slider extends Widget
       slide: (e, ui) =>
         sliding = true
         @setVal(ui.value)
-        Widgets.compute()  # Superclass method
+        Widgets.compute() if @fast  # Superclass method
       change: (e, ui) =>
+        #@setVal(ui.value)
+        Widgets.compute() unless @fast
         setTimeout (-> sliding = false), 100 # Unused because responds to slide method
     
     @setVal @init

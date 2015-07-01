@@ -355,7 +355,8 @@ class ComputationEditor
     widgetRegex = /(slider|table|plot|bar) "([^"]*)"/
     matchArray = widgetRegex.exec(line)
     match = if matchArray is null then null else matchArray[0]
-    @trigger "cursorOnWidget", {match}
+    id = if matchArray is null then null else matchArray[2]
+    @trigger "cursorOnWidget", {match, id}
     
   on: (evt, observer) -> @observers[evt].push observer
   
@@ -697,7 +698,9 @@ class Layout
     renderedWidgets: []
     clickBox: []
   
-  @set: (@spec) -> @render()
+  @set: (@spec) ->
+    #console.log "^^^^^^^ Layout.set"
+    @render()
   
   @pos: (@currentContainer) ->
     
@@ -866,14 +869,26 @@ class App
     @clickedOnComponent = false
     #@clickedLayout = false
     
+    @currentComponent = null
+    
+    highlight = (component) =>
+      @currentComponent?.removeClass "widget-highlight"
+      @currentComponent = component
+      @currentComponent?.addClass "widget-highlight"
+    
     computationEditor.on "cursorOnWidget", (data) =>
       @clickedOnComponent = true
+      widget = if data.id then Widgets.widgets[data.id] else null
+      console.log "cursorOnWidget", data, widget
+      highlight widget?.mainContainer
       widgetEditor.currentId = null
       widgetEditor.setViewPort data.match
       markdownEditor.setViewPort null
     
     $(document).on "clickWidget", (evt, data) =>
       @clickedOnComponent = true
+      highlight data.widget.mainContainer
+      #$("#"+data.id).css background: "yellow" 
       widgetEditor.currentId = data.id
       widgetEditor.setViewPort data.type + " " + "\"#{data.id}\""
       markdownEditor.setViewPort null
@@ -881,12 +896,14 @@ class App
     
     markdownEditor.on "clickText", (data) =>
       @clickedOnComponent = true
+      highlight null
       widgetEditor.setViewPort null
       markdownEditor.setViewPort data.start
     
     $(document.body).click (evt, data) =>
       setTimeout (=>
         unless @clickedOnComponent or $(evt.target).attr("class") is "ace_content"
+          highlight null
           widgetEditor.setViewPort null
           markdownEditor.setViewPort null
         @clickedOnComponent = false
@@ -912,6 +929,7 @@ class App
     Layout.on "clickBox", =>
       return if @clickedOnComponent  # Order of observer registration matters here
       console.log "clicked box"
+      highlight null
       @clickedOnComponent = true
       setTimeout (=> @clickedOnComponent = false), 300
       widgetEditor.setViewPort "layout"

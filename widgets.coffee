@@ -43,7 +43,7 @@ class Slider extends Widget
     
     clickEvent = =>
       unless sliding
-        $.event.trigger "clickWidget", type: "slider", id: @id
+        $.event.trigger "clickWidget", type: "slider", id: @id, widget: this
       sliding = false
     
     @outer = $ "<div>", class: "slider-container"
@@ -138,7 +138,7 @@ class Table extends Widget
       id: @id
       class: "widget"
       click: (e, ui) =>
-        $.event.trigger "clickWidget", type: "table", id: @id
+        $.event.trigger "clickWidget", type: "table", id: @id, widget: this
     
     @table.css(@css) if @css
     
@@ -227,7 +227,7 @@ class Plot extends Widget
         width: @width ? 400
         height: @height ? 200
       click: (e, ui) =>
-        $.event.trigger "clickWidget", type: "plot", id: @id
+        $.event.trigger "clickWidget", type: "plot", id: @id, widget: this
         
     @plot.css(@css) if @css
     

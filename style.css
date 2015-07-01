@@ -57,6 +57,10 @@ div[data-file="blab.md"] {
 	cursor: default;
 }
 
+.widget-highlight {
+  background: #aaf;
+}
+
 /*
 div[data-file="layout.coffee"] {
 	border: 3px solid #aaf;

@@ -54,7 +54,7 @@ class Widgets
       @count = 0  # ZZZ Bug?  only for foo.coffee or widgets.coffee
       return unless url is @filename
       @widgetEditor.init(resource)
-      @Layout.render()
+      #@Layout.render()
       @precode()
       @widgets = {}
     
@@ -695,12 +695,16 @@ class Layout
   
   @observers:
     renderedWidgets: []
+    clickBox: []
   
-  @set: (@spec) ->
+  @set: (@spec) -> @render()
   
   @pos: (@currentContainer) ->
     
   @render: ->
+    if Array.isArray(@spec)
+      @renderFromArray()
+      return
     return unless Object.keys(@spec).length
     n = 1
     widgets = $("#widgets")
@@ -709,7 +713,9 @@ class Layout
       r = $ "<div>", id: label
       widgets.append r
       for col in row
-        c = $ "<div>", class: col
+        c = $ "<div>",
+          class: col
+          click: => @trigger "clickBox"
         c.addClass "layout-box"
         @appendNum c, n
         n++
@@ -720,13 +726,45 @@ class Layout
       r.append($ "<div>", class: "clear")
     @highlight() if WidgetEditor.viewPortDisplayed or MarkdownEditor.viewPortDisplayed  # ZZZ temp
     @trigger "renderedWidgets"
-    #$.event.trigger "renderedWidgets"
+    
+  @renderFromArray: ->
+    return unless @spec.length
+    #console.log "RENDER LAYOUT", @spec
+    n = 1
+    widgets = $("#widgets")
+    widgets.empty()
+    for numCols, rowIdx in @spec
+      if numCols>4
+        console.log "Maximum of 4 columns per row"
+        numCols = 4
+      r = $ "<div>", id: "widget-row-#{rowIdx+1}"  # ZZZ later: widgets-row-1
+      widgets.append r
+      for colNum in [1..numCols]
+        #col = if colNum is 1 then "left" else "right"  # ZZZ temporary
+        boxId = "widget-box-#{n}"
+        boxClass = "box-#{numCols}-#{colNum}"
+        c = $ "<div>",
+          id: boxId
+          class: boxClass
+          click: => @trigger "clickBox"
+        c.addClass "layout-box"
+        r.append c
+        @appendNum c, n
+        n++
+        for d in [1..5]
+          o = $ "<div>", class: "order-#{d}"
+          c.append o
+      r.append($ "<div>", class: "clear")
+    @highlight() if WidgetEditor.viewPortDisplayed or MarkdownEditor.viewPortDisplayed  # ZZZ temp
+    @trigger "renderedWidgets"
   
   @appendNum: (c, n) ->
     num = $ "<div>",
       text: n
       class: "layout-box-number"
+      css: marginLeft: c.width()-23
     c.append num
+    #console.log "width", c.width()
     num.hide()
     
   @highlight: (highlight=true) ->
@@ -746,10 +784,7 @@ class Layout
     
   @getContainer: (pos, order) ->
     if Number.isInteger(pos)
-      # ZZZ temporary
-      row = Math.round(pos/2)
-      col = if pos % 2 then "left" else "right"
-      position = "#row#{row} .#{col}"
+      position = "#widget-box-#{pos}"
     else
       position = pos
     container = $(position)
@@ -829,6 +864,7 @@ class App
       markdownEditor.process()
     
     @clickedOnComponent = false
+    #@clickedLayout = false
     
     computationEditor.on "cursorOnWidget", (data) =>
       @clickedOnComponent = true
@@ -872,10 +908,17 @@ class App
     $(document).on "aceFilesLoaded", =>
       #textEditor.process()
       markdownEditor.process()
-    
+      
+    Layout.on "clickBox", =>
+      return if @clickedOnComponent  # Order of observer registration matters here
+      console.log "clicked box"
+      @clickedOnComponent = true
+      setTimeout (=> @clickedOnComponent = false), 300
+      widgetEditor.setViewPort "layout"
+      markdownEditor.setViewPort null
+
 
 new App
-
 
 # Export
 $blab.Widget = Widget

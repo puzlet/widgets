@@ -54,6 +54,7 @@ div[data-file="blab.md"] {
   margin-left: 443px;  /* should be function of container width */
   border-radius: 5px;
   font-size: 10pt;
+	cursor: default;
 }
 
 /*

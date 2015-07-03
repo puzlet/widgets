@@ -345,7 +345,7 @@ class ComputationEditor
   setLine: =>
     cursor = @selection?.getCursor()
     if cursor?.row isnt @currentLine
-      @currentLine = cursor.row
+      @currentLine = cursor?.row
       @inspectLineForWidget()
   
   inspectLineForWidget: ->
@@ -802,6 +802,82 @@ class Layout
   
 
 
+class Definitions
+  
+  constructor: ->
+    
+    $blab.definitions = {}
+    
+    $blab.use = (id=null) => @use id
+    
+    $blab.defs = $blab.use()
+    
+    $(document).on "allBlabDefinitionsLoaded", ->
+      console.log "Loaded all blab definitions", $blab.defs
+      # load <div> coffee; run compute.coffee
+      # Auto-preamble for compute.coffee:
+      # TODO: "{foo, bar, foo2} = $blab.defs"
+    
+  use: (id=null) ->
+    
+    url = (if id then "#{id}/" else "") + "defs.coffee"
+    
+    # Initialize unless already set by another import.
+    $blab.definitions[url] ?= {}
+    defs = $blab.definitions[url]
+    defs.isImport ?= true
+    defs.loaded ?= false
+    setTimeout (=> @checkLoaded defs), 10
+    @loadCoffee(url, => @getDefs url, defs) unless defs.loaded
+    
+    defs  # Initially returns {}; fills properties when imported defs.coffee loaded.
+      
+  getDefs: (url, defs) ->
+    # $blab.definitions[url] can be {}.
+    blabDefs = $blab.definitions[url]
+    blabDefs.loaded = true
+    defs[name] = def for name, def of blabDefs
+    @checkLoaded defs
+  
+  checkLoaded: (defs) ->
+    # Check defs file loaded
+    return false unless defs.loaded
+    # Check imports loaded
+    checkAll = true
+    for name, def of defs
+      checkAll = false if def.isImport and not def.loaded
+    return false unless checkAll
+    # Check all def files loaded
+    for url, blabDefs of $blab.definitions
+      return false unless blabDefs.loaded
+    $.event.trigger "allBlabDefinitionsLoaded"
+    true
+  
+  loadCoffee: (url, callback) ->
+    resources = $blab.resources
+    coffee = resources.add {url}
+    @precode url
+    resources.load ((resource) -> resource.url is url), =>
+      coffee.compile()
+      callback?()
+  
+  precode: (url) ->
+    
+    preamble = """
+        blabId = "#{url}"\n
+        use = (id) -> $blab.use id\n
+        defs = (d) -> $blab.definitions[blabId] = d\n
+        \n\n
+      """
+    
+    precompile = {}
+    precompile[url] =
+      preamble: preamble
+      postamble: ""
+    
+    $blab.precompile(precompile)
+
+
 codeSections = ->
   title = "Show/hide code"
   comp = $ "#computation-code-section"
@@ -839,6 +915,8 @@ codeSections = ->
 class App
   
   constructor: ->
+    
+    new Definitions
     
     codeSections()
     

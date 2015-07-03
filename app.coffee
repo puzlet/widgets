@@ -262,17 +262,27 @@ class Computation
   @filename: "compute.coffee"
   
   @init: ->
+    console.log "*********** Computation init"
     p = @precode()
+    unless @initialized
+      $(document).on "allBlabDefinitionsLoaded", (evt, data) =>
+        console.log "$$$$$$$$", data.list
+        @defs = data.list
+        @precode()
+        @initialized = true
+        @compute()
     @compute()
     
   @compute: ->
     resource = $blab.resources.find(@filename)
+    #console.log "======== COMPUTE", resource
     resource?.compile()
     
   @precode: ->
     
     preamble = ""
     preamble += Widget.computePreamble+"\n" for WidgetName, Widget of Widgets.Registry
+    preamble += @defs+"\n" if @defs
     
     preDefine = $blab.resources.find("predefine.coffee")
     preamble += preDefine?.content+"\n" if preDefine
@@ -311,7 +321,7 @@ class ComputationEditor
     $(document).on "compiledCoffeeScript", (evt, data) =>
       return unless data.url is @filename
       #@currentLine = null
-      @setLine() if data.url is @filename
+      @setLine()
       
     # No longer used
     $(document).on "clickComputationButton", (evt, data) =>
@@ -322,6 +332,9 @@ class ComputationEditor
       return unless data.filename is @filename
       @currentLine = null
       @setLine()
+      
+    $(document).on "allBlabDefinitionsLoaded", -> # unused
+    
       
   init: (@resource) ->
     
@@ -349,6 +362,7 @@ class ComputationEditor
       @inspectLineForWidget()
   
   inspectLineForWidget: ->
+    return unless @editor
     code = @editor.code()
     lines = code.split "\n"
     line = lines[@currentLine]  # ZZZ easier way?  pass current line - ace method?
@@ -804,31 +818,63 @@ class Layout
 
 class Definitions
   
+  filename: "defs.coffee"
+  
   constructor: ->
     
     $blab.definitions = {}
     
     $blab.use = (id=null) => @use id
     
-    $blab.defs = $blab.use()
+    @allLoaded = false
+    $blab.defs = {}
+    $blab.mainDefs = (defs) => @main(defs)
     
-    $(document).on "allBlabDefinitionsLoaded", ->
-      console.log "Loaded all blab definitions", $blab.defs
+    @precode "defs.coffee"
+    
+    # ZZZ Temporary - hack
+    #$blab.defs = $blab.use()
+    
+    #$(document).on "allBlabDefinitionsLoaded", (evt, data) ->
+      #console.log "$$$$$$$$", data.list 
+      
       # load <div> coffee; run compute.coffee
       # Auto-preamble for compute.coffee:
       # TODO: "{foo, bar, foo2} = $blab.defs"
+      
+    $(document).on "preCompileCoffee", (evt, data) =>
+      resource = data.resource
+      url = resource.url
+      return unless url is @filename
+      $blab.defs = {}
+      $blab.definitions = {}
+      @allLoaded = false
+      
+  main: (defs) ->
+    # Main defs.coffee
+    #console.log "^^^^^^^^^^ main"
+    $blab.definitions[@filename] = defs
+    defs.loaded = true
+    $blab.defs = defs
+    #console.log "check(1)", @filename
+    @checkLoaded defs
     
   use: (id=null) ->
     
-    url = (if id then "#{id}/" else "") + "defs.coffee"
+    url = (if id then "#{id}/" else "") + @filename
     
     # Initialize unless already set by another import.
     $blab.definitions[url] ?= {}
     defs = $blab.definitions[url]
     defs.isImport ?= true
     defs.loaded ?= false
-    setTimeout (=> @checkLoaded defs), 10
-    @loadCoffee(url, => @getDefs url, defs) unless defs.loaded
+    if defs.loaded
+      setTimeout (=>
+        #console.log "check(2)", url
+        @checkLoaded defs
+      ), 0
+    else
+      @loadCoffee(url, => @getDefs url, defs)
     
     defs  # Initially returns {}; fills properties when imported defs.coffee loaded.
       
@@ -837,9 +883,13 @@ class Definitions
     blabDefs = $blab.definitions[url]
     blabDefs.loaded = true
     defs[name] = def for name, def of blabDefs
+    #console.log "^^^^^ get defs"
+    #console.log "check(3)", url
     @checkLoaded defs
   
   checkLoaded: (defs) ->
+    #console.log "^^^^^ check loaded"
+    return if @allLoaded
     # Check defs file loaded
     return false unless defs.loaded
     # Check imports loaded
@@ -850,23 +900,43 @@ class Definitions
     # Check all def files loaded
     for url, blabDefs of $blab.definitions
       return false unless blabDefs.loaded
-    $.event.trigger "allBlabDefinitionsLoaded"
+    @allLoaded = true
+    $.event.trigger "allBlabDefinitionsLoaded", {list: @list()}
     true
+    
+  list: ->
+    d = []
+    for name, def of $blab.defs
+      d.push name unless name is "loaded"
+    list = d.join ", "
+    "{#{list}} = $blab.defs"
   
   loadCoffee: (url, callback) ->
+    # TODO: need methods in $blab.resources (remove resource)
     resources = $blab.resources
+    rArray = resources.resources
+    coffeeIdx = idx for r, idx in rArray when r.url is url
+    rArray.splice(coffeeIdx, 1) if coffeeIdx
     coffee = resources.add {url}
     @precode url
+    #console.log "COMPILE - PRELOAD", coffee, $blab.resources
     resources.load ((resource) -> resource.url is url), =>
+      #console.log "COMPILE1", coffee, coffee.compiler, resources 
       coffee.compile()
+      #console.log "COMPILE2"
+      
       callback?()
   
   precode: (url) ->
     
     preamble = """
-        blabId = "#{url}"\n
-        use = (id) -> $blab.use id\n
-        defs = (d) -> $blab.definitions[blabId] = d\n
+        blabId = "#{url}"
+        use = (id) -> $blab.use id
+        defs = (d) ->
+          if blabId is "defs.coffee"
+            $blab.mainDefs(d)
+          else
+            $blab.definitions[blabId] = d
         \n\n
       """
     

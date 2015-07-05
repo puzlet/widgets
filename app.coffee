@@ -4,6 +4,19 @@
 return if $blab?.layoutProcessed
 $blab.layoutProcessed = true
 
+defResource = $blab.resources.find "defs.coffee"
+console.log "%%%%%%%%%%%%% defResource", defResource
+if defResource
+  defResource.blockPostLoad = false
+  console.log "%%%%%%%%%%% DEF", defResource
+
+#$(document).on "resourcesAdded", (evt, data) ->
+#  for resource in data.resources
+#    console.log "******** Added", resource.url
+
+#defs = $blab.resources.find
+
+
 class Widget
   
   @layoutPreamble:
@@ -822,6 +835,9 @@ class Definitions
   
   constructor: ->
     
+    @resources = $blab.resources
+    @resources.blockPostLoadFromSpecFile = true if @resources.find(@filename)
+    
     $blab.definitions = {}
     
     $blab.use = (id=null) => @use id
@@ -834,13 +850,6 @@ class Definitions
     
     # ZZZ Temporary - hack
     #$blab.defs = $blab.use()
-    
-    #$(document).on "allBlabDefinitionsLoaded", (evt, data) ->
-      #console.log "$$$$$$$$", data.list 
-      
-      # load <div> coffee; run compute.coffee
-      # Auto-preamble for compute.coffee:
-      # TODO: "{foo, bar, foo2} = $blab.defs"
       
     $(document).on "preCompileCoffee", (evt, data) =>
       resource = data.resource
@@ -852,7 +861,6 @@ class Definitions
       
   main: (defs) ->
     # Main defs.coffee
-    #console.log "^^^^^^^^^^ main"
     $blab.definitions[@filename] = defs
     defs.loaded = true
     $blab.defs = defs
@@ -900,9 +908,14 @@ class Definitions
     # Check all def files loaded
     for url, blabDefs of $blab.definitions
       return false unless blabDefs.loaded
-    @allLoaded = true
-    $.event.trigger "allBlabDefinitionsLoaded", {list: @list()}
+    @allDone()
     true
+    
+  allDone: ->
+    @allLoaded = true
+    @resources.postLoadFromSpecFile() unless @firstDone?
+    @firstDone = true
+    $.event.trigger "allBlabDefinitionsLoaded", {list: @list()}
     
   list: ->
     d = []
@@ -913,18 +926,16 @@ class Definitions
   
   loadCoffee: (url, callback) ->
     # TODO: need methods in $blab.resources (remove resource)
-    resources = $blab.resources
-    rArray = resources.resources
+    rArray = @resources.resources
     coffeeIdx = idx for r, idx in rArray when r.url is url
     rArray.splice(coffeeIdx, 1) if coffeeIdx
-    coffee = resources.add {url}
+    coffee = @resources.add {url}
     @precode url
     #console.log "COMPILE - PRELOAD", coffee, $blab.resources
-    resources.load ((resource) -> resource.url is url), =>
+    @resources.load ((resource) -> resource.url is url), =>
       #console.log "COMPILE1", coffee, coffee.compiler, resources 
       coffee.compile()
       #console.log "COMPILE2"
-      
       callback?()
   
   precode: (url) ->

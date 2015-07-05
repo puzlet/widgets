@@ -4,19 +4,6 @@
 return if $blab?.layoutProcessed
 $blab.layoutProcessed = true
 
-defResource = $blab.resources.find "defs.coffee"
-console.log "%%%%%%%%%%%%% defResource", defResource
-if defResource
-  defResource.blockPostLoad = false
-  console.log "%%%%%%%%%%% DEF", defResource
-
-#$(document).on "resourcesAdded", (evt, data) ->
-#  for resource in data.resources
-#    console.log "******** Added", resource.url
-
-#defs = $blab.resources.find
-
-
 class Widget
   
   @layoutPreamble:
@@ -836,7 +823,10 @@ class Definitions
   constructor: ->
     
     @resources = $blab.resources
+    # DEBUG
     @resources.blockPostLoadFromSpecFile = true if @resources.find(@filename)
+    console.log "=======BLOCK"
+    # TODO: improve so can specify block per resource.  resources postload would check all.
     
     $blab.definitions = {}
     
@@ -912,7 +902,9 @@ class Definitions
     true
     
   allDone: ->
+    console.log "=======DONE"
     @allLoaded = true
+    # DEBUG
     @resources.postLoadFromSpecFile() unless @firstDone?
     @firstDone = true
     $.event.trigger "allBlabDefinitionsLoaded", {list: @list()}
@@ -925,17 +917,30 @@ class Definitions
     "{#{list}} = $blab.defs"
   
   loadCoffee: (url, callback) ->
+    
     # TODO: need methods in $blab.resources (remove resource)
     rArray = @resources.resources
     coffeeIdx = idx for r, idx in rArray when r.url is url
     rArray.splice(coffeeIdx, 1) if coffeeIdx
+    
+    if url.indexOf("gist") is 0
+      re = /^gist:([a-z0-9_-]+)/
+      match = re.exec url
+      return unless match
+      gistId = match[1]
+      @gist gistId, (source) =>
+        coffee = @resources.add {url: url, source: source}
+        @doLoad coffee, callback
+      return
+    
     coffee = @resources.add {url}
+    @doLoad coffee, callback
+      
+  doLoad: (coffee, callback) ->
+    url = coffee.url
     @precode url
-    #console.log "COMPILE - PRELOAD", coffee, $blab.resources
     @resources.load ((resource) -> resource.url is url), =>
-      #console.log "COMPILE1", coffee, coffee.compiler, resources 
       coffee.compile()
-      #console.log "COMPILE2"
       callback?()
   
   precode: (url) ->
@@ -957,6 +962,15 @@ class Definitions
       postamble: ""
     
     $blab.precompile(precompile)
+    
+  gist: (gistId, callback) ->
+    api = "https://api.github.com/gists"
+    url = "#{api}/#{gistId}"
+    $.get(url, (data) =>
+      console.log "Gist #{gistId} loaded (defs.coffee)", data
+      defs = data.files?["defs.coffee"]?.content ? null
+      callback?(defs)
+    )
 
 
 codeSections = ->

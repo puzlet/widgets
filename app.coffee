@@ -4,6 +4,8 @@
 return if $blab?.layoutProcessed
 $blab.layoutProcessed = true
 
+$blab.codeDecoration = true
+
 class Widget
   
   @layoutPreamble:
@@ -930,6 +932,7 @@ class Definitions
       gistId = match[1]
       @gist gistId, (source) =>
         coffee = @resources.add {url: url, source: source}
+        coffee.location.inBlab = false  # Hack for gist save
         @doLoad coffee, callback
       return
     

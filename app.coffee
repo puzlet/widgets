@@ -915,6 +915,7 @@ class Definitions
     
   allDone: ->
     console.log "=======DONE", $blab.defs, $blab.defs.bar
+    $blab.defs.dependents?()  # DEBUG
     @allLoaded = true
     # DEBUG
     @resources.postLoadFromSpecFile() unless @firstDone?
@@ -1067,7 +1068,7 @@ class App
     computationEditor.on "cursorOnWidget", (data) =>
       @clickedOnComponent = true
       widget = if data.id then Widgets.widgets[data.id] else null
-      console.log "cursorOnWidget", data, widget
+      #console.log "cursorOnWidget", data, widget
       highlight widget?.mainContainer
       widgetEditor.currentId = null
       widgetEditor.setViewPort data.match

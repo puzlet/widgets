@@ -915,18 +915,23 @@ class Definitions
     
   allDone: ->
     console.log "=======DONE", $blab.defs, $blab.defs.bar
-    $blab.defs.dependents?()  # DEBUG
+    @processDerived($blab.defs)
     @allLoaded = true
     # DEBUG
     @resources.postLoadFromSpecFile() unless @firstDone?
     @firstDone = true
     $.event.trigger "allBlabDefinitionsLoaded", {list: @list()}
     
+  processDerived: (d) ->
+    for name, def of d
+      @processDerived(def) if def.isImport  # Recursion
+    d.derived?()
+    
   list: ->
     d = []
     console.log "$blab.defs.bar", $blab.defs.bar
     for name, def of $blab.defs
-      d.push name unless name is "loaded"
+      d.push name unless name is "loaded" or name is "derived"
     list = d.join ", "
     "{#{list}} = $blab.defs"
   

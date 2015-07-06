@@ -293,6 +293,8 @@ class Computation
     precompile[@filename] =
       preamble: preamble
       postamble: ""
+      
+    #console.log "precompile", precompile
     
     $blab.precompile(precompile)
     true
@@ -832,7 +834,7 @@ class Definitions
     
     $blab.definitions = {}
     
-    $blab.use = (id=null) => @use id
+    $blab.use = (id=null, callback) => @use id, callback
     
     @allLoaded = false
     $blab.defs = {}
@@ -847,19 +849,22 @@ class Definitions
       resource = data.resource
       url = resource.url
       return unless url is @filename
+      console.log "&&&&&&&&&&&&&&&&&&&& CLEAR"
       $blab.defs = {}
       $blab.definitions = {}
       @allLoaded = false
       
   main: (defs) ->
     # Main defs.coffee
+    console.log "$$$$$$$$$$$$ defs/main"
     $blab.definitions[@filename] = defs
     defs.loaded = true
     $blab.defs = defs
     #console.log "check(1)", @filename
     @checkLoaded defs
+    defs
     
-  use: (id=null) ->
+  use: (id=null, callback) ->
     
     url = (if id then "#{id}/" else "") + @filename
     
@@ -874,7 +879,10 @@ class Definitions
         @checkLoaded defs
       ), 0
     else
-      @loadCoffee(url, => @getDefs url, defs)
+      @loadCoffee url, =>
+        console.log "***************** LOADED", url
+        callback?($blab.defs, defs)
+        @getDefs url, defs
     
     defs  # Initially returns {}; fills properties when imported defs.coffee loaded.
       
@@ -883,12 +891,13 @@ class Definitions
     blabDefs = $blab.definitions[url]
     blabDefs.loaded = true
     defs[name] = def for name, def of blabDefs
+    console.log "----------SET DEFS (getDefs) (defs.foo, $blab.defs.bar)", defs.foo, $blab.defs.bar
     #console.log "^^^^^ get defs"
     #console.log "check(3)", url
     @checkLoaded defs
   
   checkLoaded: (defs) ->
-    #console.log "^^^^^ check loaded"
+    console.log "^^^^^ check loaded"
     return if @allLoaded
     # Check defs file loaded
     return false unless defs.loaded
@@ -896,6 +905,7 @@ class Definitions
     checkAll = true
     for name, def of defs
       checkAll = false if def.isImport and not def.loaded
+    console.log "checkAll", checkAll, $blab.definitions
     return false unless checkAll
     # Check all def files loaded
     for url, blabDefs of $blab.definitions
@@ -904,7 +914,7 @@ class Definitions
     true
     
   allDone: ->
-    console.log "=======DONE"
+    console.log "=======DONE", $blab.defs, $blab.defs.bar
     @allLoaded = true
     # DEBUG
     @resources.postLoadFromSpecFile() unless @firstDone?
@@ -913,6 +923,7 @@ class Definitions
     
   list: ->
     d = []
+    console.log "$blab.defs.bar", $blab.defs.bar
     for name, def of $blab.defs
       d.push name unless name is "loaded"
     list = d.join ", "
@@ -950,12 +961,13 @@ class Definitions
     
     preamble = """
         blabId = "#{url}"
-        use = (id) -> $blab.use id
+        use = (id, callback) -> $blab.use(id, callback)
         defs = (d) ->
           if blabId is "defs.coffee"
-            $blab.mainDefs(d)
+            return $blab.mainDefs(d)
           else
             $blab.definitions[blabId] = d
+            return d
         \n\n
       """
     

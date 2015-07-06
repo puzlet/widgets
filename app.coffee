@@ -881,7 +881,7 @@ class Definitions
     else
       @loadCoffee url, =>
         console.log "***************** LOADED", url
-        callback?($blab.defs, defs)
+        callback?(defs)
         @getDefs url, defs
     
     defs  # Initially returns {}; fills properties when imported defs.coffee loaded.

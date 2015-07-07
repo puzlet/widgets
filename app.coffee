@@ -286,8 +286,8 @@ class Computation
     preamble += Widget.computePreamble+"\n" for WidgetName, Widget of Widgets.Registry
     preamble += @defs+"\n" if @defs
     
-    preDefine = $blab.resources.find("predefine.coffee")
-    preamble += preDefine?.content+"\n" if preDefine
+    #preDefine = $blab.resources.find("predefine.coffee")
+    #preamble += preDefine?.content+"\n" if preDefine
     
     precompile = {}
     precompile[@filename] =
@@ -1011,7 +1011,7 @@ codeSections = ->
   ps = true
   toggleHeading = ->
     ps = not ps
-    $("#predefined-code-heading").html (if ps then "[Hide" else "[Show")+" predefined code]"
+    #$("#predefined-code-heading").html (if ps then "[Hide" else "[Show")+" predefined code]"
   toggleHeading()
   
   removeInit = ->

@@ -378,7 +378,14 @@ class ComputationEditor
     code = @editor.code()
     lines = code.split "\n"
     line = lines[@currentLine]  # ZZZ easier way?  pass current line - ace method?
-    widgetRegex = /(slider|table|plot|bar|bar2|bar3) "([^"]*)"/
+    
+    handles = (Widget.handle for WidgetName, Widget of Widgets.Registry)
+    handlesStr = handles.join "|"
+    console.log handlesStr
+    
+    widgetRegex = new RegExp("(#{handlesStr}) \"([^\"]*)\"","g");
+    
+    #widgetRegex = /(slider|table|plot|bar|bar2) "([^"]*)"/
     matchArray = widgetRegex.exec(line)
     match = if matchArray is null then null else matchArray[0]
     id = if matchArray is null then null else matchArray[2]

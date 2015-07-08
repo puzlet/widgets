@@ -1,10 +1,14 @@
 /*------Puzlet------*/
 
+/* same as layout-code-section */
 #markdown-editor {
 	position: fixed;
-	bottom: 10px;
+	bottom: 0px;
 	left: 0px;
 	width: 100%;
+	background: #FFEBD6;
+  padding: 10px;
+  border-top: 2px solid #FFCC66;
 	/*background: green;*/
 	z-index: 10;
 	/*display: none;*/
@@ -19,10 +23,12 @@ div[data-file="blab.md"] {
 
 #layout-code-section {
 	position: fixed;
-	bottom: 10px;
+	bottom: 0px;
 	left: 0px;
 	width: 100%;
-	/*background: green;*/
+	background: #FFEBD6;
+  padding: 10px;
+  border-top: 2px solid #FFCC66;
 	z-index: 10;
 	/*display: none;*/
 }

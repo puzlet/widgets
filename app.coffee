@@ -929,7 +929,8 @@ class Definitions
     
   list: ->
     d = []
-    console.log "$blab.defs.bar", $blab.defs.bar
+    console.log "$blab.defs", $blab.defs
+    
     for name, def of $blab.defs
       d.push name unless name is "loaded" or name is "derived"
     list = d.join ", "
@@ -947,8 +948,10 @@ class Definitions
       match = re.exec url
       return unless match
       gistId = match[1]
-      @gist gistId, (source) =>
+      @gist gistId, (data) =>
+        source = data.defs
         coffee = @resources.add {url: url, source: source}
+        coffee.gistData = data  # Hack to let Ace access gist description/author
         coffee.location.inBlab = false  # Hack for gist save
         @doLoad coffee, callback
       return
@@ -990,7 +993,9 @@ class Definitions
     $.get(url, (data) =>
       console.log "Gist #{gistId} loaded (defs.coffee)", data
       defs = data.files?["defs.coffee"]?.content ? null
-      callback?(defs)
+      description = data.description
+      owner = data.owner.login
+      callback?({defs, description, owner})
     )
 
 

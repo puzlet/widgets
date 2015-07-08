@@ -49,6 +49,15 @@ class Widgets
     @Layout = Layout
     
     @widgetEditor ?= new WidgetEditor(@filename)
+    # Hack to fix layout editor issue.
+    $(document).on "aceFilesLoaded", =>
+      return if @widgetEditor.editor
+      resource = $blab.resources.find @filename
+      @widgetEditor.init(resource) #unless @widgetEditor.editor
+    
+    #setTimeout (=>
+    #  @widgetEditor.init(@filename) unless @widgetEditor.editor
+    #), 1500
     
     $(document).on "preCompileCoffee", (evt, data) =>
       resource = data.resource
@@ -143,6 +152,7 @@ class WidgetEditor
   init: (@resource) ->
     return if @editor
     @editor = @resource.containers?.fileNodes?[0].editor
+    console.log "^^^^^^^^^^^^^^^^^^^^ widget editor", @resource.containers, @resource
     return unless @editor
     @aceEditor = @editor.editor
     @setViewPort null
@@ -1087,7 +1097,7 @@ class App
     $(document).on "clickWidget", (evt, data) =>
       @clickedOnComponent = true
       highlight data.widget.mainContainer
-      #$("#"+data.id).css background: "yellow" 
+      #$("#"+data.id).css background: "yellow"
       widgetEditor.currentId = data.id
       widgetEditor.setViewPort data.type + " " + "\"#{data.id}\""
       markdownEditor.setViewPort null

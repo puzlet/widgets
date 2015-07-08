@@ -39,6 +39,7 @@ class Widgets
   @Registry: {}
   
   @register: (WidgetSet) ->
+    console.log "****REGISTER", WidgetSet, @Registry
     @Registry[Widget.name] = Widget for Widget in WidgetSet
   
   @widgets: {}
@@ -152,7 +153,6 @@ class WidgetEditor
   init: (@resource) ->
     return if @editor
     @editor = @resource.containers?.fileNodes?[0].editor
-    console.log "^^^^^^^^^^^^^^^^^^^^ widget editor", @resource.containers, @resource
     return unless @editor
     @aceEditor = @editor.editor
     @setViewPort null
@@ -278,7 +278,6 @@ class Computation
     p = @precode()
     unless @initialized
       $(document).on "allBlabDefinitionsLoaded", (evt, data) =>
-        console.log "$$$$$$$$", data.list
         @defs = data.list
         @precode()
         @initialized = true
@@ -287,7 +286,6 @@ class Computation
     
   @compute: ->
     resource = $blab.resources.find(@filename)
-    #console.log "======== COMPUTE", resource
     resource?.compile()
     
   @precode: ->
@@ -380,7 +378,7 @@ class ComputationEditor
     code = @editor.code()
     lines = code.split "\n"
     line = lines[@currentLine]  # ZZZ easier way?  pass current line - ace method?
-    widgetRegex = /(slider|table|plot|bar|bar2) "([^"]*)"/
+    widgetRegex = /(slider|table|plot|bar|bar2|bar3) "([^"]*)"/
     matchArray = widgetRegex.exec(line)
     match = if matchArray is null then null else matchArray[0]
     id = if matchArray is null then null else matchArray[2]
@@ -839,7 +837,6 @@ class Definitions
     @resources = $blab.resources
     # DEBUG
     @resources.blockPostLoadFromSpecFile = true if @resources.find(@filename)
-    console.log "=======BLOCK"
     # TODO: improve so can specify block per resource.  resources postload would check all.
     
     $blab.definitions = {}
@@ -859,14 +856,12 @@ class Definitions
       resource = data.resource
       url = resource.url
       return unless url is @filename
-      console.log "&&&&&&&&&&&&&&&&&&&& CLEAR"
       $blab.defs = {}
       $blab.definitions = {}
       @allLoaded = false
       
   main: (defs) ->
     # Main defs.coffee
-    console.log "$$$$$$$$$$$$ defs/main"
     $blab.definitions[@filename] = defs
     defs.loaded = true
     $blab.defs = defs
@@ -890,7 +885,6 @@ class Definitions
       ), 0
     else
       @loadCoffee url, =>
-        console.log "***************** LOADED", url
         callback?(defs)
         @getDefs url, defs
     
@@ -901,13 +895,11 @@ class Definitions
     blabDefs = $blab.definitions[url]
     blabDefs.loaded = true
     defs[name] = def for name, def of blabDefs
-    console.log "----------SET DEFS (getDefs) (defs.foo, $blab.defs.bar)", defs.foo, $blab.defs.bar
     #console.log "^^^^^ get defs"
     #console.log "check(3)", url
     @checkLoaded defs
   
   checkLoaded: (defs) ->
-    console.log "^^^^^ check loaded"
     return if @allLoaded
     # Check defs file loaded
     return false unless defs.loaded
@@ -924,7 +916,6 @@ class Definitions
     true
     
   allDone: ->
-    console.log "=======DONE", $blab.defs, $blab.defs.bar
     @processDerived($blab.defs)
     @allLoaded = true
     # DEBUG

@@ -1108,8 +1108,9 @@ class App
       markdownEditor.setViewPort data.start
     
     $(document.body).click (evt, data) =>
+      console.log "click", $(evt.target).attr("class")
       setTimeout (=>
-        unless @clickedOnComponent or $(evt.target).attr("class") is "ace_content"
+        unless @clickedOnComponent or $(evt.target).attr("class") # Hack for Ace editor click
           highlight null
           widgetEditor.setViewPort null
           markdownEditor.setViewPort null

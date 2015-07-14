@@ -76,7 +76,7 @@ class Widgets
       Computation.init()
       $.event.trigger "htmlOutputUpdated"
       
-#    @queueCompile 2000  # Hack to force compile for Gist source
+    @queueCompile 2000  # Hack to force compile for Gist source
       
   @append: (id, widget, element) ->
     @widgets[id] = widget
@@ -927,11 +927,11 @@ class Definitions
     @allLoaded = true
     
     # DEBUG
-    @resources.add url: "layout.coffee"
-    @resources.loadUnloaded =>
-      @resources.postLoadFromSpecFile() unless @firstDone?
-      @firstDone = true
-      $.event.trigger "allBlabDefinitionsLoaded", {list: @list()}
+    #@resources.add url: "layout.coffee"
+    #@resources.loadUnloaded =>
+    @resources.postLoadFromSpecFile() unless @firstDone?
+    @firstDone = true
+    $.event.trigger "allBlabDefinitionsLoaded", {list: @list()}
     
   processDerived: (d) ->
     for name, def of d

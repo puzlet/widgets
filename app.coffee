@@ -39,7 +39,7 @@ class Widgets
   @Registry: {}
   
   @register: (WidgetSet) ->
-    console.log "****REGISTER", WidgetSet, @Registry
+    #console.log "****REGISTER", WidgetSet, @Registry
     @Registry[Widget.name] = Widget for Widget in WidgetSet
   
   @widgets: {}
@@ -274,7 +274,7 @@ class Computation
   @filename: "compute.coffee"
   
   @init: ->
-    console.log "*********** Computation init"
+    #console.log "*********** Computation init"
     p = @precode()
     unless @initialized
       $(document).on "allBlabDefinitionsLoaded", (evt, data) =>
@@ -839,11 +839,13 @@ class Definitions
   
   filename: "defs.coffee"
   
-  constructor: ->
+  constructor: (@done) ->
     
     @resources = $blab.resources
-    # DEBUG
-    @resources.blockPostLoadFromSpecFile = true if @resources.find(@filename)
+    
+    @coffee = @resources.add url: @filename
+    
+    #@resources.blockPostLoadFromSpecFile = true #if @resources.find(@filename)
     # TODO: improve so can specify block per resource.  resources postload would check all.
     
     $blab.definitions = {}
@@ -854,7 +856,7 @@ class Definitions
     $blab.defs = {}
     $blab.mainDefs = (defs) => @main(defs)
     
-    @precode "defs.coffee"
+    @precode @filename
     
     # ZZZ Temporary - hack
     #$blab.defs = $blab.use()
@@ -866,6 +868,8 @@ class Definitions
       $blab.defs = {}
       $blab.definitions = {}
       @allLoaded = false
+      
+    @resources.loadUnloaded => @coffee.compile()
       
   main: (defs) ->
     # Main defs.coffee
@@ -914,7 +918,7 @@ class Definitions
     checkAll = true
     for name, def of defs
       checkAll = false if def.isImport and not def.loaded
-    console.log "checkAll", checkAll, $blab.definitions
+    #console.log "checkAll", checkAll, $blab.definitions
     return false unless checkAll
     # Check all def files loaded
     for url, blabDefs of $blab.definitions
@@ -926,12 +930,12 @@ class Definitions
     @processDerived($blab.defs)
     @allLoaded = true
     
-    # DEBUG
-    #@resources.add url: "layout.coffee"
-    #@resources.loadUnloaded =>
-    @resources.postLoadFromSpecFile() unless @firstDone?
-    @firstDone = true
-    $.event.trigger "allBlabDefinitionsLoaded", {list: @list()}
+    if @firstDone?
+      $.event.trigger "allBlabDefinitionsLoaded", {list: @list()}
+    else
+      @done =>
+        @firstDone = true
+        $.event.trigger "allBlabDefinitionsLoaded", {list: @list()}
     
   processDerived: (d) ->
     for name, def of d
@@ -1002,7 +1006,7 @@ class Definitions
     api = "https://api.github.com/gists"
     url = "#{api}/#{gistId}"
     $.get(url, (data) =>
-      console.log "Gist #{gistId} loaded (defs.coffee)", data
+      #console.log "Gist #{gistId} loaded (defs.coffee)", data
       defs = data.files?["defs.coffee"]?.content ? null
       description = data.description
       owner = data.owner.login
@@ -1047,8 +1051,20 @@ codeSections = ->
 class App
   
   constructor: ->
+    @resources = $blab.resources
+    @resources.blockPostLoadFromSpecFile = true
+    @load()
     
-    new Definitions
+  load: ->
+    layout = @resources.add url: "layout.coffee"
+    @resources.loadUnloaded =>
+      new Definitions (cb) =>
+        @init()
+        layout.compile()
+        @resources.postLoadFromSpecFile()
+        cb()
+      
+  init: ->
     
     codeSections()
     
@@ -1145,7 +1161,6 @@ class App
       setTimeout (=> @clickedOnComponent = false), 300
       widgetEditor.setViewPort "layout"
       markdownEditor.setViewPort null
-
 
 new App
 

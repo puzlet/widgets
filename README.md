@@ -1,2 +1,2 @@
 # widgets
-Puzlet widgets
+Blabr widgets

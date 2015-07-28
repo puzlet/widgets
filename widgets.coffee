@@ -284,10 +284,10 @@ class Plot extends Widget
       l = numeric.transpose([X[xRow], Y[yRow]])
       d.push l
     
-    p = $.plot @plot, d, params
+    @flot = $.plot @plot, d, params
 
     # Center plot in parent container
-    o = p.getPlotOffset()
+    o = @flot.getPlotOffset()
     m = (@plot.parent().width() - @plot.width() - o.left + o.right)/2
     @plot.css marginLeft: m
     

@@ -193,8 +193,6 @@ class Plot extends Widget
   
   create: (@spec) ->
     
-    #super @p1, @p2
-    
     {@width, @height, @xlabel, @ylabel, @css} = @spec
     
     @plot = $("#"+@domId())

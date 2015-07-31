@@ -48,7 +48,7 @@ class Slider extends Widget
     @sliderContainer = $ "<div>",
       class: "puzlet-slider"
       id: @domId()
-      click: (e, ui) => clickEvent()
+      click: => clickEvent()
     @outer.append @sliderContainer
         
     @outer.click -> clickEvent()
@@ -122,7 +122,7 @@ class Table extends Widget
     @table = $ "<table>",
       id: @domId()
       class: "widget"
-      click: (e, ui) => @select()
+      click: => @select()
     
     @table.css(@css) if @css
     
@@ -203,7 +203,7 @@ class Plot extends Widget
       css:
         width: @width ? 400
         height: @height ? 200
-      click: (e, ui) => @select()
+      click: => @select()
     
     @plot.css(@css) if @css
     

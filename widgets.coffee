@@ -1,13 +1,10 @@
 #!vanilla
 
 Widget = $blab.Widget
-Widgets = $blab.Widgets
 
 class Slider extends Widget
   
   @handle: "slider"
-  @api: "$blab.Widgets.Registry.Slider"
-  @domIdPrefix: "slider-"
   
   @initVal: 5
   
@@ -18,25 +15,15 @@ class Slider extends Widget
     pos: 1, order: 1
   """
   
-  @layoutPreamble:
-    "#{@handle} = (id, spec) -> new #{@api}(id, spec)"
-    
-  @computePreamble:
-    "#{@handle} = (id) -> #{@api}.compute(id)"
+  @compute: (id, v...) ->
+    @getVal(id, v...) ? @initVal
   
-  @compute: (id) ->
-    Widgets.fetch(Slider, id)?.getVal() ? Slider.initVal
-  
-  constructor: (@p1, @p2) ->
+  create: (@spec) ->
     
-    super @p1, @p2
-      
     {@min, @max, @step, @init, @prompt, @text, @val, @unit} = @spec
     # @text is to be deprecated (use @val instead)
     
-    @domId = "#{Slider.domIdPrefix}#{@id}"
-    
-    @sliderContainer = $("#"+@domId)
+    @sliderContainer = $("#"+@domId())
     if @sliderContainer.length
       @sliderContainer.slider?("destroy")
       @outer = @sliderContainer.parent()
@@ -45,9 +32,7 @@ class Slider extends Widget
     sliding = false
     
     clickEvent = =>
-      unless sliding
-        $.event.trigger "clickWidget", type: "slider", id: @domId, widget: this
-#        $.event.trigger "clickWidget", type: "slider", id: @id, widget: this
+      @select() unless sliding
       sliding = false
     
     @outer = $ "<div>", class: "slider-container"
@@ -62,7 +47,7 @@ class Slider extends Widget
     
     @sliderContainer = $ "<div>",
       class: "puzlet-slider"
-      id: @domId
+      id: @domId()
       click: (e, ui) => clickEvent()
     @outer.append @sliderContainer
         
@@ -79,9 +64,7 @@ class Slider extends Widget
     
     @textDiv2.html @unit if @unit
     
-    @mainContainer = @outer
-    Widgets.append @domId, this, @outer  # not now: Superclass method
-#    Widgets.append @id, this, @outer  # not now: Superclass method
+    @appendToCanvas @outer
     
     @fast = @spec.fast ? true
     
@@ -95,10 +78,10 @@ class Slider extends Widget
       slide: (e, ui) =>
         sliding = true
         @setVal(ui.value)
-        Widgets.compute() if @fast  # Superclass method
+        @computeAll() if @fast  # Superclass method
       change: (e, ui) =>
         #@setVal(ui.value)
-        Widgets.compute() unless @fast
+        @computeAll() unless @fast
         setTimeout (-> sliding = false), 100 # Unused because responds to slide method
     
     @setVal @init
@@ -117,8 +100,6 @@ class Slider extends Widget
 class Table extends Widget
   
   @handle: "table"
-  @api: "$blab.Widgets.Registry.Table"
-  @domIdPrefix: "table-"
   
   @initSpec: (id, v) ->
     """
@@ -127,30 +108,21 @@ class Table extends Widget
       pos: 1, order: 1
     """
   
-  @layoutPreamble: "#{@handle} = (id, spec) -> new #{@api}(id, spec)"
-  
-  @computePreamble: "#{@handle} = (id, v...) ->\n  #{@api}.compute(id, v...)\n  null"
-  
   @compute: (id, v...) ->
     for x, idx in v
       v[idx] = [x] unless Array.isArray(x)
-    Widgets.fetch(Table, id, v...)?.setVal(v)
+    @setVal(id, v...)
   
-  constructor: (@p1, @p2) ->
-    
-    super @p1, @p2
+  create: (@spec) ->
     
     {@headings, @widths, @colCss, @css, @precision} = @spec
     
-    @domId = "#{Table.domIdPrefix}#{@id}"
-    
-    @table = $("#"+@domId)
+    @table = $ "#"+@domId()
     @table.remove() if @table.length
     @table = $ "<table>",
-      id: @domId
+      id: @domId()
       class: "widget"
-      click: (e, ui) =>
-        $.event.trigger "clickWidget", type: "table", id: @domId, widget: this
+      click: (e, ui) => @select()
     
     @table.css(@css) if @css
     
@@ -173,12 +145,11 @@ class Table extends Widget
     @tbody = $ "<tbody>"
     @table.append @tbody
     
-    @mainContainer = @table
-    Widgets.append @domId, this, @table
-    #Widgets.append @id, this, @table
+    @appendToCanvas @table
+    
     @setVal([[0]])
     
-  initialize: -> #@setVal @init
+  initialize: ->
   
   setVal: (v) ->
     @setUsed()
@@ -205,8 +176,6 @@ class Table extends Widget
 class Plot extends Widget
   
   @handle: "plot"
-  @api: "$blab.Widgets.Registry.Plot"
-  @domIdPrefix: "plot-"
   
   @initSpec: (id) -> """
     width: 300, height: 200
@@ -219,45 +188,36 @@ class Plot extends Widget
     pos: 1, order: 1
   """
   
-  @layoutPreamble: "#{@handle} = (id, spec) -> new #{@api}(id, spec)"
+  @compute: (id, v...) ->
+    @setVal(id, v...)
   
-  @computePreamble: "#{@handle} = (id, v...) ->\n  #{@api}.compute(id, v)\n  null"
-  
-  @compute: (id, v) ->
-    Widgets.fetch(Plot, id, v...)?.setVal(v)
-  
-  constructor: (@p1, @p2) ->
+  create: (@spec) ->
     
-    super @p1, @p2
+    #super @p1, @p2
     
     {@width, @height, @xlabel, @ylabel, @css} = @spec
     
-    @domId = "#{Plot.domIdPrefix}#{@id}"
-    
-    @plot = $("#"+@domId)
+    @plot = $("#"+@domId())
     @plot.remove() if @plot.length
     @plot = $ "<div>",
-      id: @domId
+      id: @domId()
       class: "puzlet-plot"
       css:
         width: @width ? 400
         height: @height ? 200
-      click: (e, ui) =>
-        $.event.trigger "clickWidget", type: "plot", id: @domId, widget: this
-        
+      click: (e, ui) => @select()
+    
     @plot.css(@css) if @css
     
-    @mainContainer = @plot
-    Widgets.append @domId, this, @plot
-#    Widgets.append @id, this, @plot
+    @appendToCanvas @plot
+    
     @setVal([[0], [0]])
     
-  initialize: -> #@setVal @init
+  initialize: ->
   
   setVal: (v) ->
     
     @setUsed()
-    #@plot.empty()
     @value = v
     
     params = @spec
@@ -337,5 +297,5 @@ class AxesLabels
       marginLeft: "-27px"
       marginTop: (@yaxisLabel.width() / 2 - 10) + "px"
 
-Widgets.register [Slider, Table, Plot]
+Widget.register [Slider, Table, Plot]
 

@@ -1,5 +1,45 @@
 /*------Slider------*/
 
+.input-container {
+  margin-top: 5px;
+  margin-bottom: 15px;
+	font-size: 10pt;
+	width: 100%;
+}
+
+.input-prompt-container {
+  display: inline-block;
+  width: 30%;
+  text-align: right;
+}
+
+.input-prompt {
+	padding-right: 10px;
+}
+
+.blab-input {
+  display: inline-block;
+  width: 40%;
+}
+
+.blab-input input {
+  width: 98%;
+}
+
+.input-text-container {
+  display: inline-block;
+  text-align: left;
+	/*padding-left: 10px;*/
+  cursor: default;
+}
+
+.input-text {
+	display: inline-block;
+	padding-left: 10px;
+}
+
+/*------Slider------*/
+
 .slider-container {
   margin-top: 5px;
   margin-bottom: 15px;

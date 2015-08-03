@@ -2,6 +2,84 @@
 
 Widget = $blab.Widget
 
+class Input extends Widget
+  
+  @handle: "input"
+  
+  @initVal: 0
+  
+  @initSpec: (id) -> """
+    init: #{Input.initVal}
+    prompt: "#{id}:"
+    unit: ""
+    pos: 1, order: 1
+  """
+  
+  @compute: (id, v...) ->
+    @getVal(id, v...) ? @initVal
+  
+  create: (@spec) ->
+    
+    {@init, @prompt, @unit} = @spec
+    
+    @inputContainer = $("#"+@domId())
+    if @inputContainer.length
+      # TODO: Need to destroy input?
+      @outer = @inputContainer.parent()
+      @outer?.remove()
+      
+    clickEvent = => @select()
+    
+    @outer = $ "<div>", class: "input-container"
+      
+    @promptContainer = $ "<div>", class: "input-prompt-container"
+    @outer.append @promptContainer
+    
+    @inputPrompt = $ "<div>", class: "input-prompt"
+    @promptContainer.append @inputPrompt
+    
+    @inputPrompt.append @prompt
+    
+    @inputContainer = $ "<div>",
+      class: "blab-input"
+      id: @domId()
+      click: => clickEvent()
+    @outer.append @inputContainer
+    
+    @outer.click -> clickEvent()
+    
+    @textContainer = $ "<div>", class: "input-text-container"
+    @outer.append @textContainer
+    
+    @textDiv = $ "<div>", class: "input-text"
+    @textContainer.append @textDiv
+    
+    @textDiv.html @unit if @unit
+    
+    @appendToCanvas @outer
+    
+    @input = $ "<input>",
+      type: "number"
+      value: @init
+      click: (e) -> e.stopPropagation()
+      change: =>
+        @setVal(parseFloat(@input.val()))
+        @computeAll()
+    
+    @inputContainer.append @input
+    
+    @setVal @init
+    
+  initialize: -> @setVal @init
+  
+  setVal: (v) ->
+    @value = v
+  
+  getVal: ->
+    @setUsed()
+    @value
+
+
 class Slider extends Widget
   
   @handle: "slider"
@@ -243,7 +321,7 @@ class Plot extends Widget
       d.push l
     
     @flot = $.plot @plot, d, params
-
+    
     # Center plot in parent container
     o = @flot.getPlotOffset()
     m = (@plot.parent().width() - @plot.width() - o.left + o.right)/2
@@ -270,6 +348,7 @@ class Plot extends Widget
     #$.plot @plot, [numeric.transpose([x, y])], params
     #@axesLabels = new AxesLabels @plot, params
     #@axesLabels.position()
+    
 
 
 # Unused - replaced by flot plugin
@@ -295,5 +374,6 @@ class AxesLabels
       marginLeft: "-27px"
       marginTop: (@yaxisLabel.width() / 2 - 10) + "px"
 
-Widget.register [Slider, Table, Plot]
+
+Widget.register [Input, Slider, Table, Plot]
 

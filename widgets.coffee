@@ -129,7 +129,7 @@ class Slider extends Widget
     @sliderContainer = $ "<div>",
       class: "puzlet-slider"
       id: @domId()
-      click: => clickEvent()
+      #click: => clickEvent()
     @outer.append @sliderContainer
         
     @outer.click -> clickEvent()

@@ -190,9 +190,11 @@ class Table extends Widget
     """
   
   @compute: (id, v...) ->
-    for x, idx in v
-      v[idx] = [x] unless Array.isArray(x)
-    @setVal(id, v...)
+    return unless v.length
+    unless v[0] instanceof Object
+      for x, idx in v
+        v[idx] = [x] unless Array.isArray(x)
+    @setValAndGet(id, v...)
   
   create: (@spec) ->
     
@@ -235,6 +237,14 @@ class Table extends Widget
   setVal: (v) ->
     @setUsed()
     
+    unless v[0] instanceof Array
+      # Doesn't yet handle multiple objects (rows)
+      @v0 = v[0]
+      @first = null
+      $blab.tableData ?= {}
+      $blab.tableData[@id] ?= {}
+      return @setValObject()
+    
     @tbody.empty()
     row = []
     for x, idx in v[0]
@@ -245,7 +255,255 @@ class Table extends Widget
         val = if typeof d is "number" then @format(d) else d
         tr.append "<td>"+val+"</td>"
     @value = v
+    null
     
+  setValObject: ->
+    
+    # Doesn't yet handle multiple objects (rows)
+    
+    console.log "Table object mode", @v0, $blab.tableData
+    
+    # TODO: define in constructor?
+    @t ?= {}  # Table object after evaluation
+    @t.set = (p) =>
+      for name, val of p
+        @v0[name] = val
+      @setValObject()
+      null
+    
+    # Initial pass to set known values
+#TEMP    @t[name] = val for name, val of @v0
+    
+    # TODO: need a way to handle function sequence
+  
+    # Note: it does not work in dataflow fashion.
+    # Column functions must be defined in order.
+    # Otherwise, can use post-set mathods.
+    cols = []  # Columns
+    for name, val of @v0
+      @first = name unless @first
+      if typeof val is "function"
+        val = val(@t)  # defer
+      else
+        $blab.tableData[@id][name] ?= val
+        val = $blab.tableData[@id][name]
+      @t[name] = val
+      val = [val] unless Array.isArray(val)  # ZZZ not needed?
+      cols.push val  # not needed?
+      
+    @setVal2() # cols
+    
+    @t
+  
+  setVal2: ->
+    
+    # TODO:
+    # specify empty col as [null, null, null] - to set length - have helper function to gen.
+    # this will render as " ", but vals will be zero.
+    
+    # stored precision an issue.
+    
+    @tbody.empty()
+    row = []
+    
+    @divs = []
+    currentOpen = null
+    currentIdx = null
+    
+    #highlightDiv = (idx) =>
+    #  console.log "highlight", @divs
+    #  @divs[2].div.empty()  # TEST
+      
+    #setTimeout (-> highlightDiv()), 5000
+    
+    for x, idx in @v0[@first] #v[0]
+      tr = $ "<tr>"
+      @tbody.append tr
+      for name, v of @v0
+        #$blab.tableData[@id][name] ?= @t[name]  # ZZZ inefficient
+        vs = $blab.tableData[@id][name]
+        #console.log "BLAB", $blab.tableData[@id][name]  #[idx]
+        #d = $blab.tableData[@id][name][idx]
+        d = if vs then vs[idx] else @t[name][idx]
+        val = if typeof d is "number" then @format(d) else d
+        
+        console.log "v", v
+        
+        
+        ip = (val, name, idx) =>
+          
+          divClick = (flag, thediv) =>
+            #if thediv
+            #  thediv.empty()
+            #  return "ok"
+            console.log "---------divclick", name, idx, div
+            #e.stopPropagation()
+            console.log "FLAG", flag, div.text()
+            div.empty()
+            #if flag
+            #  console.log "FLAG!", flag, div.text()
+            #  div.text 1234
+            #  return "ok"
+            i = makei()
+            currentIdx = idx
+            currentOpen = div
+            div.append i
+            i.focus()
+            i.select()
+            div
+          
+          console.log "MAKE DIV"
+          
+          div = $ "<div>",
+            #css: display: "inline-block"
+            text: val
+            css:
+              height: "14px"
+              lineHeight: "14px"  # May need to make line height same for regular cells
+              verticalAlign: "top"
+              cursor: "pointer"
+            click: (e) =>
+              console.log "click", name, idx
+              e.stopPropagation()
+              divClick()
+              #div.empty()
+              #i = makei()
+              #currentIdx = idx
+              #currentOpen = div
+              #div.append i
+              #i.focus()
+              #i.select()
+          
+          #div
+              # Alt: cursor at end
+              #strLength= i.val().length * 2
+              #i[0].setSelectionRange(strLength, strLength)
+              
+            #onblur: =>
+            #  div.empty()
+            #  div.text val
+          #div.text val
+          
+          resetdiv = ->
+            div.empty()
+            div.text val
+          
+          makei = =>
+            console.log "MAKE INPUT"
+            i = $ "<input>",
+              class: "table-input-field"
+              value:  val
+              css:
+                width: "60px"
+                textAlign: "center"
+                height: "14px"
+                lineHeight: "14px"
+                verticalAlign: "top"
+                fontSize: "10pt"
+                margin: 0
+                padding: 0
+                border: 0
+                #borderWidth: 0
+                #border: "none"
+                #"-webkit-appearance": "none"
+              click: (e) -> e.stopPropagation()
+              keydown: (e) =>
+                console.log "INPUT KEY"
+                if e.keyCode is 38
+                  e.preventDefault()
+                  @editNext = idx - 1
+                  return if @editNext<0
+                  @computeAll()  # Don't need to compute
+                  console.log "UP/DOWN"
+                if e.keyCode is 40
+                  e.preventDefault()
+                  @editNext = idx + 1
+                  return if @editNext>=@divs.length
+                  @computeAll()  # Don't need to compute
+              change: (e) =>
+                console.log "CHANGE"
+                @forgetEnter = true
+                #console.log "e", e.target.value  # or use i here
+                console.log $blab.tableData
+                $blab.tableData[@id][name][idx] = parseFloat(e.target.value)
+                console.log $blab.tableData
+                #@computing = true
+                console.log "=========idx", idx
+                @editNext = idx + 1  # TODO Need to limit this
+                @computeAll()
+                #currentIdx++
+                #console.log "currentIdx", currentIdx, @divs
+                #if currentIdx>@divs.length-1
+                #  currentIdx = null
+                #if currentIdx
+                #  console.log "*** do click", currentIdx, @divs[currentIdx]
+                #  @editNext = currentIdx
+                  #setTimeout (=>
+                    #@highlightDiv()
+                  #  dc = @divs[currentIdx].divClick(true, @divs[currentIdx].div)
+                    #console.log "dc", dc
+                  #), 2000  # TODO: base on computation done?
+              blur: ->
+                console.log "BLUR"
+                resetdiv()
+                
+            i.keyup (e) =>  # perhaps key down
+              console.log "forget", @forgetEnter
+              
+              #if e.keyCode is 38 or e.keyCode is 40
+              #  e.preventDefault()
+              #  console.log "UP/DOWN"
+                
+              #  @editNext = idx + 1
+              #  @computeAll()  # Don't need to compute
+              
+              
+              if e.keyCode is 13
+                
+                if @forgetEnter
+                  @forgetEnter = false
+                  return
+                
+                console.log "ENTER KEY"
+                @editNext = idx + 1
+                @computeAll()  # Don't need to compute
+                #@forgetEnter = false
+              
+            i
+            
+          #i
+          return {div, divClick}
+          
+        
+        if typeof v is "function"
+          tdc = val
+        else
+          #$blab.tableData[] = val
+          dd = ip(val, name, idx)
+          tdc = dd.div
+          @divs.push dd
+          
+          #i = $ "<input>",
+            # value: val
+            # css: width: "40px"
+            # click: (e) -> e.stopPropagation()
+            # change: (e) =>
+            #   console.log "e", e.target.value
+            #   $blab.tableData[@id][name] = e.target.value
+          
+        td = $ "<td>"
+        td.append tdc
+        tr.append td
+    
+    console.log "editNext", @editNext
+    
+    if @editNext isnt false and @editNext<@divs.length and @editNext>=0
+      ddiv = @divs[@editNext]
+      ddiv.divClick(true, ddiv.div)
+      @editNext = false
+    
+    @value = v
+   
   format: (x) ->
     if x is 0 or Number.isInteger?(x) and Math.abs(x)<1e10
       x

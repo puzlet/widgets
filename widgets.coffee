@@ -12,6 +12,7 @@ class Input extends Widget
     init: #{Input.initVal}
     prompt: "#{id}:"
     unit: ""
+    align: "left"
     pos: 1, order: 1
   """
   
@@ -20,7 +21,7 @@ class Input extends Widget
   
   create: (@spec) ->
     
-    {@init, @prompt, @unit} = @spec
+    {@init, @prompt, @unit, @align} = @spec
     
     @inputContainer = $("#"+@domId())
     if @inputContainer.length
@@ -65,6 +66,8 @@ class Input extends Widget
       change: =>
         @setVal(parseFloat(@input.val()))
         @computeAll()
+        
+    @input.css(textAlign: @align) if @align
     
     @inputContainer.append @input
     

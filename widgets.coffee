@@ -411,12 +411,14 @@ class Table extends Widget
                 console.log "INPUT KEY"
                 if e.keyCode is 38
                   e.preventDefault()
+                  $blab.tableData[@id][name][idx] = parseFloat(i.val())
                   @editNext = idx - 1
                   return if @editNext<0
                   @computeAll()  # Don't need to compute
                   console.log "UP/DOWN"
                 if e.keyCode is 40
                   e.preventDefault()
+                  $blab.tableData[@id][name][idx] = parseFloat(i.val())
                   @editNext = idx + 1
                   return if @editNext>=@divs.length
                   @computeAll()  # Don't need to compute

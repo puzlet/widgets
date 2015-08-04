@@ -305,6 +305,7 @@ class Table extends Widget
         val = val(@t)  # defer
       else
         @firstTableDataName = name unless @firstTableDataName
+        if val.length is 0 then val = [null]
         @tableData[name] ?= val
         val = @tableData[name]
         #console.log "---VAL", name, val, @tableData[name]?[0]
@@ -339,6 +340,8 @@ class Table extends Widget
     # what about text values in cells - currently assumes numeric.
     # select column of cells, copy/paste
     # like editor: enter inserted a line; down arrow moves to next.  backspace deletes.
+    #*** paste option - 
+    # ... get "3 5 6" from eval.  click on cell.  then paste.  feature to interpret this as multiple cells, and isnert below.
     
     @tbody.empty()
     row = []

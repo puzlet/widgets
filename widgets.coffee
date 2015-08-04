@@ -185,7 +185,7 @@ class Table extends Widget
   @initSpec: (id, v) ->
     """
       headings: []  # ["Column 1", "Column 2"]
-      widths: [100]  #[100, 100]
+      widths: 100  #[100, 100]
       pos: 1, order: 1
     """
   
@@ -209,15 +209,16 @@ class Table extends Widget
     
     @table.css(@css) if @css
     
-    colGroup = $ "<colgroup>"
-    @table.append colGroup
-    @widths ?= [100]
+    @colGroup = $ "<colgroup>"
+    @table.append @colGroup
+    @widths ?= 100
     @widths = [@widths] unless Array.isArray(@widths)
-    for w, idx in @widths
-      css = @colCss?[idx] ? {}
-      css.width = w
-      col = $ "<col>", css: css
-      colGroup.append col
+    @setColGroup()
+    #for w, idx in @widths
+    #  css = @colCss?[idx] ? {}
+    #  css.width = w
+    #  col = $ "<col>", css: css
+    #  @colGroup.append col
       
     if @headings
       tr = $ "<tr>"
@@ -236,6 +237,20 @@ class Table extends Widget
     
     @setVal([[0]])
     
+  setColGroup: (n) ->
+    
+    if n
+      expand = n and @widths.length<n and not Array.isArray(@spec.widths)
+      return unless expand
+      @widths = (@spec.widths for i in [1..n])
+    
+    @colGroup.empty()
+    for w, idx in @widths
+      css = @colCss?[idx] ? {}
+      css.width = w
+      col = $ "<col>", css: css
+      @colGroup.append col
+  
   initialize: ->
   
   setVal: (v) ->
@@ -246,6 +261,12 @@ class Table extends Widget
       @v0 = v[0]
       @first = null
       return @setValObject()
+      
+    @setColGroup(v.length)
+    
+    if @widths.length<v.length and not Array.isArray(@spec.widths)
+      @widths = (@spec.widths for i in [1..v.length])
+      @setColGroup()
     
     @tbody.empty()
     row = []
@@ -281,6 +302,7 @@ class Table extends Widget
     # Note: it does not work in dataflow fashion.
     # Column functions must be defined in order.
     # Otherwise, can use post-set mathods.
+    
     cols = []  # Columns
     for name, val of @v0
       @first = name unless @first
@@ -292,6 +314,9 @@ class Table extends Widget
       @t[name] = val
       val = [val] unless Array.isArray(val)  # ZZZ not needed?
       cols.push val  # not needed?
+      
+    console.log "CL", cols.length
+    @setColGroup(cols.length)
       
     @setVal2() # cols
     
@@ -424,7 +449,7 @@ class EditableCell
     @done() unless @noChange
   
   done: (dir=0) ->
-    val = parseFloat(@input.val())
+    val = parseFloat(@input.val())  # TODO: what if text cell?
     changed = val isnt @val
     @val = val if changed
     @edited val, changed, dir

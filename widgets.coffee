@@ -214,11 +214,6 @@ class Table extends Widget
     @widths ?= 100
     @widths = [@widths] unless Array.isArray(@widths)
     @setColGroup()
-    #for w, idx in @widths
-    #  css = @colCss?[idx] ? {}
-    #  css.width = w
-    #  col = $ "<col>", css: css
-    #  @colGroup.append col
       
     if @headings
       tr = $ "<tr>"
@@ -264,10 +259,6 @@ class Table extends Widget
       
     @setColGroup(v.length)
     
-    if @widths.length<v.length and not Array.isArray(@spec.widths)
-      @widths = (@spec.widths for i in [1..v.length])
-      @setColGroup()
-    
     @tbody.empty()
     row = []
     for x, idx in v[0]
@@ -295,7 +286,7 @@ class Table extends Widget
       null
     
     # Initial pass to set known values
-#TEMP    @t[name] = val for name, val of @v0
+    #TEMP    @t[name] = val for name, val of @v0
     
     # TODO: need a way to handle function sequence
   
@@ -305,43 +296,74 @@ class Table extends Widget
     
     cols = []  # Columns
     for name, val of @v0
+      
+      #console.log "=======tableData start", name, @tableData[name]?[0]
+      
       @first = name unless @first
       if typeof val is "function"
+        #console.log "*****t", @t
         val = val(@t)  # defer
       else
+        @firstTableDataName = name unless @firstTableDataName
         @tableData[name] ?= val
         val = @tableData[name]
-      @t[name] = val
+        #console.log "---VAL", name, val, @tableData[name]?[0]
+        
+      @t[name] = (v for v in val)  # copy
+      @checkNull(name)
       val = [val] unless Array.isArray(val)  # ZZZ not needed?
       cols.push val  # not needed?
       
-    console.log "CL", cols.length
-    @setColGroup(cols.length)
+      #console.log "=======tableData end", name, @tableData[name]?[0]
       
+    @setColGroup(cols.length)
+    
     @setVal2() # cols
     
     @t
+    
+  checkNull: (name) ->
+    for v, idx in @t[name]
+      if v is null
+        #console.log "=======tableData start", name, @tableData[name]?[0]
+        @t[name][idx] = 0
+        #console.log "=======tableData end", name, @tableData[name]?[0]
+        
   
   setVal2: ->
     
     # TODO:
+    # *** BUG: editableCells should be per column.
     # specify empty col as [null, null, null] - to set length - have helper function to gen.
     # this will render as " ", but vals will be zero.
     # what about text values in cells - currently assumes numeric.
+    # select column of cells, copy/paste
+    # like editor: enter inserted a line; down arrow moves to next.  backspace deletes.
     
     @tbody.empty()
     row = []
     
     @editableCells = []
     
-    for x, idx in @v0[@first] #v[0]
+    colFirst = if @firstTableDataName then @tableData[@firstTableDataName] else @v0[@first]
+    
+    for x, idx in colFirst  # TODO: assumes @first is editable.
       tr = $ "<tr>"
       @tbody.append tr
       
       for name, v of @v0
         
         vs = @tableData[name]
+        
+        # Handle null values
+        #if @t[name][idx] is null
+        #  @t[name][idx] = 0
+        #  d = null
+        #else
         d = if vs then vs[idx] else @t[name][idx]
+        #console.log "d", d, @t[name][idx]
+          
+        #@t[name][idx] = 0 if d is null
         
         td = $ "<td>"
         tr.append td
@@ -352,34 +374,85 @@ class Table extends Widget
         else
           cell = new EditableCell
             container: td
-            edited: @set(name, idx)
+            idx: idx
             val: d  # TODO: need to format for display?
+            callback: @cellAction(name, idx)
+            del: @cellDeleteAction(name, idx)
+            insert: @cellInsertAction(name, idx)
           @editableCells.push cell
           
     @clickNext()
     @value = v
     
-  set: (name, idx) ->
+    console.log "tableData", @tableData
+    
+  cellAction: (name, idx) ->
     # Returns set/edited function.
     (val, changed, dir) =>
-      @setNext(idx, dir)
+      @setNext(idx, dir, name)
       if changed
         @tableData[name][idx] = val
         @computeAll()
       else
         @clickNext()
   
-  setNext: (idx, dir) ->
+  cellInsertAction: (name, idx) ->
+    =>
+      console.log "INSERT", name, idx
+      @tableData[name].splice(idx, 0, null)  # TODO: align other columns
+      @editNext = idx
+      @computeAll()
+      #if idx is @editableCells.length-1
+      #  console.log "DELETE", idx, @tableData[name]
+      #  @tableData[name].pop()
+      #  @editableCells.pop()
+      #  @editNext = idx - 1
+      #  @computeAll()
+        
+  cellDeleteAction: (name, idx) ->
+    =>
+      #@tableData[name].pop()
+      @tableData[name].splice(idx, 1)
+      #@editableCells.pop()
+      @editNext = if idx>1 then idx - 1 else idx=0
+      @computeAll()
+      return
+      # old
+      if idx is @editableCells.length-1
+        console.log "DELETE", idx, @tableData[name]
+        @tableData[name].pop()
+        @editableCells.pop()
+        @editNext = idx - 1
+        @computeAll()
+  
+  setNext: (idx, dir, name) ->
     if dir is 0
       @editNext = false
     else
       @editNext = idx + dir
-      @editNext = idx unless @nextOk()
+      if @firstTableDataName and @editNext>=@editableCells.length
+        @appendCell(name) 
+      else
+        @editNext = idx unless @nextOk()
+      
+  appendCell: (name) ->
+    console.log "append", @v0[@first], @tableData
+    #@v0[@first].push 0
+    @tableData[name].push null
+    @editableCells.push null
+    console.log "editNext", @editNext
+    @computeAll()
+    #cell = new EditableCell
+    #  container: @editableCells[idx-1].container
+    #  val: 0  # TODO: need to format for display?
+    #  callback: @cellAction(name, idx)
+    #@editableCells.push cell
   
   clickNext: ->
+    console.log "clickNext", @editNext
     return unless @nextOk()
     @editableCells[@editNext].click()
-    @editNext = false
+    #@editNext = false
     
   nextOk: ->
     @editNext isnt false and @editNext>=0 and @editNext<@editableCells.length
@@ -395,11 +468,14 @@ class EditableCell
   
   constructor: (@spec) ->
     
-    {@container, @val, @edited} = @spec
+    {@container, @idx, @val, @callback, @del, @insert} = @spec
+    
+    @disp = if @val is null then "" else @val
+    #console.log "CELL", @val, @disp
     
     @div = $ "<div>",
       class: "editable-table-cell"
-      text: @val
+      text: @disp
       click: (e) =>
         e.stopPropagation()
         @click()
@@ -415,12 +491,12 @@ class EditableCell
     
   reset: ->
     @div.empty()
-    @div.text @val
+    @div.text(if @val is null then "" else @val)
     
   createInput: ->
     @input = $ "<input>",
       class: "editable-table-input-field"
-      value:  @val
+      value: @disp
       click: (e) -> e.stopPropagation()
       keydown: (e) => @keyDown(e)
       change: (e) => @change(e)
@@ -429,15 +505,28 @@ class EditableCell
   keyDown: (e) ->
     
     key = e.keyCode
+    console.log "key", key, e.shiftKey
     
     ret = 13
+    backspace = 8
     up = 38
     down = 40
     
     if key is ret
       # Handle case where user presses return without changing value.
-      @noChange = true
-      @done(1)
+      e.preventDefault()
+      if e.shiftKey
+        @insert(@idx)
+      else
+        @noChange = true
+        @done(1)
+      return
+      
+    if key is backspace
+      console.log "backspace", @idx
+      if @input.val() is ""
+        e.preventDefault()
+        @del(@idx) 
       return
     
     return unless key in [up, down]
@@ -449,10 +538,18 @@ class EditableCell
     @done() unless @noChange
   
   done: (dir=0) ->
-    val = parseFloat(@input.val())  # TODO: what if text cell?
-    changed = val isnt @val
-    @val = val if changed
-    @edited val, changed, dir
+    v = @input.val()
+    if v is ""
+      changed = v isnt @disp
+      val = null
+      @val = val
+      @callback val, changed, dir
+    else
+      val = if v then parseFloat(v) else null # TODO: what if text cell?
+      changed = val isnt @val
+      @val = val if changed
+      @disp = @val
+      @callback val, changed, dir
 
 
 class Plot extends Widget

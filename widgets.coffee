@@ -230,6 +230,17 @@ class Table extends Widget
     $blab.tableData[@id] ?= {}
     @tableData = $blab.tableData[@id]
     
+    self = this
+    handler = ->
+      #console.log "%%%%%%%%%%%%%%%%%%%% compiled compute.coffee"
+      #return unless data.url is "compute.coffee"
+      self.setFunctions()
+      
+    #$(document).off "compiledCoffeeScript", (evt, data) -> handler(evt, data)
+    console.log "^^^^^^^^^^ LISTENER", @spec
+    # ZZZ unbind?
+    $(document).on "blabcompute", handler
+    
     #(document.body).removeEventListener "copy"
     #(document.body).addEventListener "copy", (e) => console.log "doc copy"
     
@@ -578,6 +589,9 @@ class Table extends Widget
     # Otherwise, can use post-set mathods.
     
     cols = []  # Columns
+    
+    @funcs = {}
+    
     for name, val of @v0
       
       #console.log "=======tableData start", name, @tableData[name]?[0]
@@ -585,7 +599,9 @@ class Table extends Widget
       @first = name unless @first
       if typeof val is "function"
         #console.log "*****t", @t
-        val = val(@t)  # defer
+#        val = val(@t)  # defer
+        @funcs[name] = val
+        val = (0 for t in @t[@first])  # initialize to zero for function calls.  TODO: better way here?
       else
         @firstTableDataName = name unless @firstTableDataName
         if val.length is 0 then val = [null]
@@ -612,7 +628,6 @@ class Table extends Widget
         #console.log "=======tableData start", name, @tableData[name]?[0]
         @t[name][idx] = 0
         #console.log "=======tableData end", name, @tableData[name]?[0]
-        
   
   setVal2: ->
     
@@ -636,7 +651,8 @@ class Table extends Widget
     @tbody.empty()
     row = []
     
-    @editableCells = []
+    @editableCells = []  # TODO: use similar naming as functionCells.
+    @functionCells = {}
     
     colFirst = if @firstTableDataName then @tableData[@firstTableDataName] else @v0[@first]
     
@@ -653,7 +669,7 @@ class Table extends Widget
         #  @t[name][idx] = 0
         #  d = null
         #else
-        d = if vs then vs[idx] else @t[name][idx]
+        d = if vs then vs[idx] else @t[name][idx]  # ZZZ needed only if not function.
         #console.log "d", d, @t[name][idx]
           
         #@t[name][idx] = 0 if d is null
@@ -662,8 +678,10 @@ class Table extends Widget
         tr.append td
         
         if typeof v is "function"
-          val = if typeof d is "number" then @format(d) else d
-          td.append val
+          @functionCells[name] ?= []
+          @functionCells[name].push td
+          #val = if typeof d is "number" then @format(d) else d
+          #td.append val
         else
           cell = new EditableCell
             container: td
@@ -677,10 +695,40 @@ class Table extends Widget
     
     @mouseEvents()
     
+    # TODO: May end up with many listeners.  Clear first.
+    #handler = (evt, data) =>
+    #  console.log "%%%%%%%%%%%%%%%%%%%% compiled compute.coffee"
+    #  return unless data.url is "compute.coffee"
+    #  @setFunctions()
+    
     @clickNext()
     @value = v
     
     console.log "tableData", @tableData
+    
+  setFunctions: ->
+    
+    console.log "setFunctions", @funcs, @functionCells
+    return unless @funcs  #?.length
+    
+    # ZZZ dup code.
+    colFirst = if @firstTableDataName then @tableData[@firstTableDataName] else @v0[@first]
+    
+    # Alternative: loop over funcs?
+    for name, val of @v0
+      continue unless typeof val is "function"
+      val = @funcs[name](@t)  # pass @t here (as before), in case func needs it (no closure)
+      @t[name] = (v for v in val)  # copy
+    
+    for x, idx in colFirst  # TODO: assumes @first is editable.
+      # Alt: loop over funcs/functionCells array
+      for name, v of @v0
+        continue unless typeof v is "function"
+        td = @functionCells[name][idx]
+        d = @t[name][idx]
+        val = if typeof d is "number" then @format(d) else d
+        td.text val  # ZZZ could use text?
+    
     
   cellAction: (name, idx) ->
     # Returns set/edited function.

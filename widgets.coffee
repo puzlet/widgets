@@ -594,6 +594,8 @@ class Table extends Widget
     
     @funcs = {}
     
+    numEd = 0
+    
     for name, val of @v0
       
       #console.log "=======tableData start", name, @tableData[name]?[0]
@@ -605,6 +607,7 @@ class Table extends Widget
         @funcs[name] = val
         val = (0 for t in @t[@first])  # initialize to zero for function calls.  TODO: better way here?
       else
+        numEd++
         @firstTableDataName = name unless @firstTableDataName
         if val.length is 0 then val = [null]
         @tableData[name] ?= val
@@ -614,7 +617,7 @@ class Table extends Widget
       @t[name] = (v for v in val)  # copy
       @checkNull(name)
       val = [val] unless Array.isArray(val)  # ZZZ not needed?
-      cols.push val  # not needed?
+      cols.push @t[name]  # needed to return as [...]
       
       #console.log "=======tableData end", name, @tableData[name]?[0]
       
@@ -622,7 +625,8 @@ class Table extends Widget
     
     @setVal2() # cols
     
-    @t
+    if numEd is 1 then cols[0] else cols
+    #@t
     
   checkNull: (name) ->
     for v, idx in @t[name]

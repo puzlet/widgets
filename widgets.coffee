@@ -230,16 +230,17 @@ class Table extends Widget
     $blab.tableData[@id] ?= {}
     @tableData = $blab.tableData[@id]
     
-    self = this
-    handler = ->
+    #self = this
+    #handler = ->
       #console.log "%%%%%%%%%%%%%%%%%%%% compiled compute.coffee"
       #return unless data.url is "compute.coffee"
-      self.setFunctions()
+    #  self.setFunctions()
       
     #$(document).off "compiledCoffeeScript", (evt, data) -> handler(evt, data)
     console.log "^^^^^^^^^^ LISTENER", @spec
     # ZZZ unbind?
-    $(document).on "blabcompute", handler
+    #$(document).off "blabcompute", => @setFunctions()
+    $(document).on "blabcompute", => @setFunctions()
     
     #(document.body).removeEventListener "copy"
     #(document.body).addEventListener "copy", (e) => console.log "doc copy"
@@ -572,6 +573,7 @@ class Table extends Widget
     console.log "Table object mode", @v0
     
     # TODO: define in constructor?
+    # ZZZ not needed now?
     @t ?= {}  # Table object after evaluation
     @t.set = (p) =>
       for name, val of p
@@ -652,6 +654,7 @@ class Table extends Widget
     row = []
     
     @editableCells = []  # TODO: use similar naming as functionCells.
+    console.log "init function cells"
     @functionCells = {}
     
     colFirst = if @firstTableDataName then @tableData[@firstTableDataName] else @v0[@first]
@@ -659,6 +662,8 @@ class Table extends Widget
     for x, idx in colFirst  # TODO: assumes @first is editable.
       tr = $ "<tr>"
       @tbody.append tr
+      
+      console.log "ROW", idx
       
       for name, v of @v0
         
@@ -693,6 +698,8 @@ class Table extends Widget
             paste: @cellPasteAction(name, idx)
           @editableCells.push cell
     
+    console.log "NEW F", @functionCells
+    
     @mouseEvents()
     
     # TODO: May end up with many listeners.  Clear first.
@@ -708,7 +715,7 @@ class Table extends Widget
     
   setFunctions: ->
     
-    console.log "setFunctions", @funcs, @functionCells
+    console.log "setFunctions", @id, @funcs, @functionCells
     return unless @funcs  #?.length
     
     # ZZZ dup code.
@@ -724,6 +731,7 @@ class Table extends Widget
       # Alt: loop over funcs/functionCells array
       for name, v of @v0
         continue unless typeof v is "function"
+        return if colFirst.length>@functionCells[name].length  # ZZZ earlier check?
         td = @functionCells[name][idx]
         d = @t[name][idx]
         val = if typeof d is "number" then @format(d) else d

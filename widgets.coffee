@@ -189,12 +189,14 @@ class Table extends Widget
       pos: 1, order: 1
     """
   
+  
   @compute: (id, v...) ->
     return unless v.length
     unless v[0] instanceof Object
       for x, idx in v
         v[idx] = [x] unless Array.isArray(x)
     @setValAndGet(id, v...)
+  
   
   create: (@spec) ->
     
@@ -237,7 +239,7 @@ class Table extends Widget
     #  self.setFunctions()
       
     #$(document).off "compiledCoffeeScript", (evt, data) -> handler(evt, data)
-    console.log "^^^^^^^^^^ LISTENER", @spec
+#    console.log "^^^^^^^^^^ LISTENER", @spec
     # ZZZ unbind?
     #$(document).off "blabcompute", => @setFunctions()
     $(document).on "blabcompute", => @setFunctions()
@@ -260,7 +262,7 @@ class Table extends Widget
     
     # see http://stackoverflow.com/questions/9578162/highlighting-table-cells-on-mouse-drag
     
-    console.log "+++++++++++ mouse events", @flag
+    #console.log "+++++++++++ mouse events", @flag
     
     down = false
     first = false
@@ -290,7 +292,6 @@ class Table extends Widget
       
     highlightSelected: ->
       
-      
     normal = (e) ->
       $(e.target).css background: ""  # ZZZ Need to revert to what it was?
     
@@ -318,7 +319,7 @@ class Table extends Widget
     # TODO: not best way to do this.
     #unless @flag
     $(document).on "blabmousedown", (e) =>
-      console.log "body mousedown"
+      #console.log "body mousedown"
       #return if down
       clear() unless down
           #clearId = setTimeout (-> clear()), 1000
@@ -339,7 +340,7 @@ class Table extends Widget
       #clearTimeout(clearId) if clearId
       #clearId = null
       #e.preventDefault()
-      console.log "td mousedown", row(e), col(e)
+      #console.log "td mousedown", row(e), col(e)
       if selected.length
         normal(s) for s in selected
       selected = []
@@ -394,7 +395,7 @@ class Table extends Widget
       
       first = false
       idx = row(e)
-      console.log "************* mouseenter" #, last, idx #, e.target
+      #console.log "************* mouseenter" #, last, idx #, e.target
       
       if lastLeave and row(lastLeave)>idx
         selected.pop()
@@ -442,10 +443,10 @@ class Table extends Widget
       
 #      window.getSelection().removeAllRanges() unless $(e.target).attr("class") is "editable-table-cell"
       
-      console.log "mouseup", e.target
+      #console.log "mouseup", e.target
       down = false
       #console.log "selected", selected
-      console.log "selected"
+     #console.log "selected"
       
       if selected.length is 1
         normal start
@@ -522,8 +523,8 @@ class Table extends Widget
       #$(e.target).css background: "green" if down
     
     #console.log "set mouse move listener"
-
-    
+  
+  
   setColGroup: (n) ->
     
     if n
@@ -537,6 +538,7 @@ class Table extends Widget
       css.width = w
       col = $ "<col>", css: css
       @colGroup.append col
+  
   
   initialize: ->
   
@@ -570,25 +572,11 @@ class Table extends Widget
     
     # Doesn't yet handle multiple objects (rows)
     
-    console.log "Table object mode", @v0
+    #console.log "Table object mode", @v0
     
     # TODO: define in constructor?
     # ZZZ not needed now?
     @t ?= {}  # Table object after evaluation
-    @t.set = (p) =>
-      for name, val of p
-        @v0[name] = val
-      @setValObject()
-      null
-    
-    # Initial pass to set known values
-    #TEMP    @t[name] = val for name, val of @v0
-    
-    # TODO: need a way to handle function sequence
-  
-    # Note: it does not work in dataflow fashion.
-    # Column functions must be defined in order.
-    # Otherwise, can use post-set mathods.
     
     cols = []  # Columns
     
@@ -598,12 +586,8 @@ class Table extends Widget
     
     for name, val of @v0
       
-      #console.log "=======tableData start", name, @tableData[name]?[0]
-      
       @first = name unless @first
       if typeof val is "function"
-        #console.log "*****t", @t
-#        val = val(@t)  # defer
         @funcs[name] = val
         val = (0 for t in @t[@first])  # initialize to zero for function calls.  TODO: better way here?
       else
@@ -612,53 +596,29 @@ class Table extends Widget
         if val.length is 0 then val = [null]
         @tableData[name] ?= val
         val = @tableData[name]
-        #console.log "---VAL", name, val, @tableData[name]?[0]
         
       @t[name] = (v for v in val)  # copy
       @checkNull(name)
-      val = [val] unless Array.isArray(val)  # ZZZ not needed?
+      #val = [val] unless Array.isArray(val)  # ZZZ not needed?
       cols.push @t[name]  # needed to return as [...]
-      
-      #console.log "=======tableData end", name, @tableData[name]?[0]
       
     @setColGroup(cols.length)
     
     @setVal2() # cols
     
     if numEd is 1 then cols[0] else cols
-    #@t
     
   checkNull: (name) ->
     for v, idx in @t[name]
       if v is null
-        #console.log "=======tableData start", name, @tableData[name]?[0]
         @t[name][idx] = 0
-        #console.log "=======tableData end", name, @tableData[name]?[0]
   
   setVal2: ->
-    
-    # TODO:
-    # *** BUG: editableCells should be per column.
-    # specify empty col as [null, null, null] - to set length - have helper function to gen.
-    # this will render as " ", but vals will be zero.
-    # what about text values in cells - currently assumes numeric.
-    # select column of cells, copy/paste
-    # like editor: enter inserted a line; down arrow moves to next.  backspace deletes.
-    #*** paste option - 
-    # ... get "3 5 6" from eval.  click on cell.  then paste.  feature to interpret this as multiple cells, and isnert below.
-    # ignore empty elements in blab data for computation.
-    # perhaps click then shift-click to select a range of cells.  would produce text of form "1 2 3" (like getting from eval).
-    # could use mousedown/mousemove/mouseup (with preventdefault) to select cells.
-    # ... but won't be able to use regular clipboard?  detect ctrl-c etc.  copy to internal clipboard.
-    # export option could be via eval?  perhaps popup edit box?  e.g., select cells.  popup edit box with text for cells.  ctrl-c now.
-    # useful: http://stackoverflow.com/questions/2176861/javascript-get-clipboard-data-on-paste-event-cross-browser
-    #**** use div with contentEditable
     
     @tbody.empty()
     row = []
     
     @editableCells = []  # TODO: use similar naming as functionCells.
-    console.log "init function cells"
     @functionCells = {}
     
     colFirst = if @firstTableDataName then @tableData[@firstTableDataName] else @v0[@first]
@@ -666,31 +626,15 @@ class Table extends Widget
     for x, idx in colFirst  # TODO: assumes @first is editable.
       tr = $ "<tr>"
       @tbody.append tr
-      
-      console.log "ROW", idx
-      
       for name, v of @v0
-        
         vs = @tableData[name]
-        
-        # Handle null values
-        #if @t[name][idx] is null
-        #  @t[name][idx] = 0
-        #  d = null
-        #else
         d = if vs then vs[idx] else @t[name][idx]  # ZZZ needed only if not function.
-        #console.log "d", d, @t[name][idx]
-          
-        #@t[name][idx] = 0 if d is null
-        
         td = $ "<td>"
         tr.append td
         
         if typeof v is "function"
           @functionCells[name] ?= []
           @functionCells[name].push td
-          #val = if typeof d is "number" then @format(d) else d
-          #td.append val
         else
           cell = new EditableCell
             container: td
@@ -702,25 +646,19 @@ class Table extends Widget
             paste: @cellPasteAction(name, idx)
           @editableCells.push cell
     
-    console.log "NEW F", @functionCells
+    #console.log "NEW F", @functionCells
     
     @mouseEvents()
-    
-    # TODO: May end up with many listeners.  Clear first.
-    #handler = (evt, data) =>
-    #  console.log "%%%%%%%%%%%%%%%%%%%% compiled compute.coffee"
-    #  return unless data.url is "compute.coffee"
-    #  @setFunctions()
     
     @clickNext()
     @value = v
     
-    console.log "tableData", @tableData
+    #console.log "tableData", @tableData
     
   setFunctions: ->
     
-    console.log "setFunctions", @id, @funcs, @functionCells
-    return unless @funcs  #?.length
+    #console.log "setFunctions", @id, @funcs, @functionCells
+    return unless @funcs
     
     # ZZZ dup code.
     colFirst = if @firstTableDataName then @tableData[@firstTableDataName] else @v0[@first]
@@ -817,7 +755,7 @@ class Table extends Widget
     #@editableCells.push cell
   
   clickNext: ->
-    console.log "clickNext", @editNext
+    #console.log "clickNext", @editNext
     return unless @nextOk()
     @editableCells[@editNext].click()
     #@editNext = false

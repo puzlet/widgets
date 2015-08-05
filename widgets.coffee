@@ -230,7 +230,287 @@ class Table extends Widget
     $blab.tableData[@id] ?= {}
     @tableData = $blab.tableData[@id]
     
+    #(document.body).removeEventListener "copy"
+    #(document.body).addEventListener "copy", (e) => console.log "doc copy"
+    
+    #@table.on "copy", (e) =>
+    #  e.preventDefault()
+    #  console.log "MAIN COPY"
+    
     @setVal([[0]])
+  
+  
+  mouseEvents: ->
+    
+    # TODO: doesn't work properly if move column and then back to diff row.
+    
+    #return
+    
+    # see http://stackoverflow.com/questions/9578162/highlighting-table-cells-on-mouse-drag
+    
+    console.log "+++++++++++ mouse events", @flag
+    
+    down = false
+    first = false
+    column = null
+    start = -1
+    end = -1
+    last = -1
+    lastLeave = null
+    selected = []
+    vector = []
+    
+    #isEditable = false
+    
+    # need "selected" vector.
+    
+    tdSel = $("##{@domId()} td")
+    
+    # ZZZ other unbinds here, too.
+    tdSel.unbind "mouseenter"
+    tdSel.unbind "mouseleave"
+    
+    row = (e) -> $(e.target).parent().index()
+    col = (e) -> $(e.target).index()
+    
+    highlight = (e) ->
+      $(e.target).css background: "rgb(180, 213, 254)"
+      
+    highlightSelected: ->
+      
+      
+    normal = (e) ->
+      $(e.target).css background: ""  # ZZZ Need to revert to what it was?
+    
+    clearId = null
+    
+    clear = =>
+      if selected.length
+        normal(s) for s in selected
+      down = false
+      first = false
+      column = null
+      start = -1
+      end = -1
+      last = -1
+      lastLeave = null
+      selected = []
+      vector = []
+      #isEditable = false
+      
+    
+    #$(document).on "blabmousedown", =>
+    #  console.log "blabmd"
+    
+    #unless @bodyMouseDown
+    # TODO: not best way to do this.
+    #unless @flag
+    $(document).on "blabmousedown", (e) =>
+      console.log "body mousedown"
+      #return if down
+      clear() unless down
+          #clearId = setTimeout (-> clear()), 1000
+      #  @bodyMouseDown = true
+      #@flag = true
+    
+    tdSel.blur (e) => console.log "blur"
+    
+    tdSel.mousedown (e) =>
+      #return
+      
+#      e.preventDefault() unless $(e.target).attr("class") is "editable-table-cell"
+      #console.log "-----target", $(e.target).attr "class"
+      
+      #tdSel.focus()
+      #return
+      
+      #clearTimeout(clearId) if clearId
+      #clearId = null
+      #e.preventDefault()
+      console.log "td mousedown", row(e), col(e)
+      if selected.length
+        normal(s) for s in selected
+      selected = []
+      down = true
+      first = true
+      column = col(e)
+      #setTimeout (=> @table.click()), 100
+      
+      idx = row(e)
+      
+      #if down and first
+      #highlight e
+      start = idx
+      end = idx
+      #selected.push e
+      
+      #tdSel.select()
+      window.getSelection().removeAllRanges()  # IE: document.selection.empty()
+      #first = false
+    
+    # tdSel.mousemove (e) ->
+    #   return unless down
+    #   idx = row(e)
+    #   console.log "idx/end", idx, start
+    #   if idx isnt start
+    #     window.getSelection().removeAllRanges()
+    #     console.log "*******Prevent"
+    #     e.preventDefault()
+    #     e.stopPropagation()
+      
+    
+    # tdSel.mousemove (e) ->
+    #   e.preventDefault()
+    #   if down and first
+    #     highlight e
+    #     idx = row(e)
+    #     column = col(e)
+    #     end = idx
+    #     selected.push e
+    #     first = false
+      
+    tdSel.mouseenter (e) =>
+      return unless down
+      return unless col(e) is column
+      
+      e.preventDefault()
+      e.stopPropagation()
+      
+      window.getSelection().removeAllRanges() unless $(e.target).attr("class") is "editable-table-cell"
+      #window.getSelection().removeAllRanges()
+      
+      
+      first = false
+      idx = row(e)
+      console.log "************* mouseenter" #, last, idx #, e.target
+      
+      if lastLeave and row(lastLeave)>idx
+        selected.pop()
+        normal lastLeave
+      
+      if idx>end
+        highlight e
+        selected.push e
+      
+      end = idx
+        #$(lastLeave.target).css background: "white" #if down and idx>end
+      #last = idx
+    
+    tdSel.mouseleave (e) =>
+      return unless down
+      return unless col(e) is column
+      
+#      window.getSelection().removeAllRanges() unless $(e.target).attr("class") is "editable-table-cell"
+      #window.getSelection().removeAllRanges()
+      
+      
+      e.preventDefault()
+      
+      console.log "************* mouseleave"  #, last, idx #, e.target
+      
+      
+      idx = row(e)
+      
+      if down and first
+        highlight e
+        selected.push e
+        #end = idx
+        #selected.push e
+        first = false
+      
+      #$(e.target).css background: "white" if down and idx>end
+      lastLeave = e
+      #last = idx
+    
+    #vector = []
+    
+    tdSel.mouseup (e) =>
+      e.preventDefault()
+      e.stopPropagation()
+      
+#      window.getSelection().removeAllRanges() unless $(e.target).attr("class") is "editable-table-cell"
+      
+      console.log "mouseup", e.target
+      down = false
+      #console.log "selected", selected
+      console.log "selected"
+      
+      if selected.length is 1
+        normal start
+      
+      vector = []
+      for s in selected
+        vector.push $(s.target).text()
+      #setTimeout (=> @table.focus()), 1000
+        #$(s.target).select()
+      #@table.click()
+      #if selected.length
+      #  selected[0].target.addEventListener "copy", (e) => console.log "COPY!"
+      
+    #tdSel.click (e) =>
+    #  e.preventDefault()
+    #  e.stopPropagation()
+    
+    $(document).on "blabcopy", (ev, data) =>
+      console.log "COPY!", @id, vector
+      return unless vector.length
+      console.log "data", data
+      e = data.original
+      e.preventDefault()
+      string = vector.join ", "
+      e.clipboardData.setData('Text', string)
+    
+    
+    $(document).on "blabpaste", (ev, data) =>
+      console.log "PASTE!", @id
+      return unless selected.length
+      #return unless vector.length
+      console.log "data", data
+      e = data.original
+      e.preventDefault()
+      #string = vector.join " "
+      t = e.clipboardData.getData('Text')
+      tv = t.split " "
+      console.log "text", tv
+    
+    
+    #@table[0].removeEventListener "copy"
+    # if false #tdSel.length is 0 #and not @listening
+    #
+    #   console.log "+++++++++++++ SETUP copy", @id
+    #   @table[0].addEventListener "copy", (data) =>
+    #     console.log "COPY", vector
+    #     return unless vector.length
+    #     e = data.e
+    #     e.preventDefault()
+    #     string = vector.join " "
+    #     e.clipboardData.setData('text/plain', string)
+        #setTimeout (-> console.log 'Clipboard', e.clipboardData.getData('Text'), e), 1000
+  #      console.log 'Clipboard', e.clipboardData.getData('text/html'), e
+        #return
+      #@listening = true
+          
+      #if down
+      
+    #return
+    
+    #@table.unbind "mousedown"
+    #@table.unbind "mouseup"
+    
+    
+    #@table.mousedown (e) =>
+    #  e.preventDefault()
+    #  console.log "mousedown"#, #$(e.target).attr "class"
+    #  down = true
+      
+    #@table.mousemove (e) =>
+    #  e.preventDefault()
+      #last = $(e.target).parent().index()
+    #  console.log "mousemove", last
+      #$(e.target).css background: "green" if down
+    
+    #console.log "set mouse move listener"
+
     
   setColGroup: (n) ->
     
@@ -267,8 +547,11 @@ class Table extends Widget
       for i in [0...v.length]
         d = v[i][idx]
         val = if typeof d is "number" then @format(d) else d
-        tr.append "<td>"+val+"</td>"
+        tr.append "<td class='table-cell'>"+val+"</td>"
     @value = v
+    
+    @mouseEvents()
+    
     null
     
   setValObject: ->
@@ -342,6 +625,13 @@ class Table extends Widget
     # like editor: enter inserted a line; down arrow moves to next.  backspace deletes.
     #*** paste option - 
     # ... get "3 5 6" from eval.  click on cell.  then paste.  feature to interpret this as multiple cells, and isnert below.
+    # ignore empty elements in blab data for computation.
+    # perhaps click then shift-click to select a range of cells.  would produce text of form "1 2 3" (like getting from eval).
+    # could use mousedown/mousemove/mouseup (with preventdefault) to select cells.
+    # ... but won't be able to use regular clipboard?  detect ctrl-c etc.  copy to internal clipboard.
+    # export option could be via eval?  perhaps popup edit box?  e.g., select cells.  popup edit box with text for cells.  ctrl-c now.
+    # useful: http://stackoverflow.com/questions/2176861/javascript-get-clipboard-data-on-paste-event-cross-browser
+    #**** use div with contentEditable
     
     @tbody.empty()
     row = []
@@ -382,8 +672,11 @@ class Table extends Widget
             callback: @cellAction(name, idx)
             del: @cellDeleteAction(name, idx)
             insert: @cellInsertAction(name, idx)
+            paste: @cellPasteAction(name, idx)
           @editableCells.push cell
-          
+    
+    @mouseEvents()
+    
     @clickNext()
     @value = v
     
@@ -427,6 +720,18 @@ class Table extends Widget
         @editableCells.pop()
         @editNext = idx - 1
         @computeAll()
+        
+  cellPasteAction: (name, idx) ->
+    (idx, val) =>
+      #e.preventDefault()
+      #text = 'hello'
+      #console.log "PASTE", name, idx, text, val.split(" ")
+      vals = val.split(", ").join(" ").split(" ")
+      for v, i in vals
+        @tableData[name][idx+i] = parseFloat(v)
+      @editNext = idx
+      @computeAll()
+      #setTimeout (-> console.log(e.clipboardData.getData('Text'))), 1000 #, val 
   
   setNext: (idx, dir, name) ->
     if dir is 0
@@ -471,7 +776,7 @@ class EditableCell
   
   constructor: (@spec) ->
     
-    {@container, @idx, @val, @callback, @del, @insert} = @spec
+    {@container, @idx, @val, @callback, @del, @insert, @paste} = @spec
     
     @disp = if @val is null then "" else @val
     #console.log "CELL", @val, @disp
@@ -479,13 +784,46 @@ class EditableCell
     @div = $ "<div>",
       class: "editable-table-cell"
       text: @disp
+      contenteditable: true
+      
+      focus: (e) => 
+        #e.preventDefault()
+        setTimeout (=> @selectElementContents @div[0]), 0
+      
+      click: (e) => @click() #e.stopPropagation()
+      keydown: (e) => @keyDown(e)
+      change: (e) => @change(e)
+      blur: => @reset()
+      
       click: (e) =>
-        e.stopPropagation()
-        @click()
+        #e.stopPropagation()
+        #@click()
+        
+    @div.on "paste", (e) =>
+      console.log "cell paste"
+      @div.css color: "white"
+      setTimeout (=>
+        @paste(@idx, @div.text())
+        #@input.show()
+      ), 0
+        
+    @input = @div 
         
     @container.append @div
+    
+  selectElementContents: (el) ->
+    range = document.createRange()
+    range.selectNodeContents(el)
+    sel = window.getSelection()
+    sel.removeAllRanges()
+    sel.addRange(range)
   
   click: ->
+    console.log "**** CLICK", @idx
+    @div.focus()
+    #@selectElementContents @div[0]
+    #@div.select()
+    return
     @div.empty()
     @createInput()
     @div.append @input
@@ -504,11 +842,19 @@ class EditableCell
       keydown: (e) => @keyDown(e)
       change: (e) => @change(e)
       blur: => @reset()
+      
+    @input.on "paste", (e) =>
+      console.log "cell paste"
+      @input.css color: "white"
+      setTimeout (=>
+        @paste(@idx, @input.val())
+        #@input.show()
+      ), 0
         
   keyDown: (e) ->
     
     key = e.keyCode
-    console.log "key", key, e.shiftKey
+    #console.log "key", key, e.shiftKey
     
     ret = 13
     backspace = 8
@@ -527,7 +873,8 @@ class EditableCell
       
     if key is backspace
       console.log "backspace", @idx
-      if @input.val() is ""
+      if @div.text() is ""
+#      if @input.val() is ""
         e.preventDefault()
         @del(@idx) 
       return
@@ -541,7 +888,8 @@ class EditableCell
     @done() unless @noChange
   
   done: (dir=0) ->
-    v = @input.val()
+    v = @input.text()
+    #v = @input.val()
     if v is ""
       changed = v isnt @disp
       val = null

@@ -105,8 +105,8 @@ td {padding: 4px;}
 /*------Editable Table------*/
 
 .editable-table-cell {
-  height: 14px;
-  line-height: 14px;  /* May need to make line height same for regular cells */
+  height: 16px; /*14px;*/
+  line-height: 16px; /*14px;*/ /* May need to make line height same for regular cells */
   vertical-align: top;
   cursor: pointer;
 }

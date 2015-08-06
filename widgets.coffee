@@ -693,45 +693,28 @@ class Table extends Widget
   cellAction: (name, idx) ->
     # Returns set/edited function.
     (val, changed, dir, colDir) =>
-      console.log "====colDir", colDir, name
       
       # Don't use focusCell if moving cell with key.
       if dir isnt 0 or colDir isnt 0
         @focusCell = null
       
-      #if colDir is 1 then @currentCol = "a"  # TEMP
-      # BUG: does not handle case where cell val changed before left/right
-      if colDir is 1
-        m = @colIdx[name] + 1
-        if m<@colNames.length
+      if colDir isnt 0
+        m = @colIdx[name] + colDir
+        if m>=0 and m<@colNames.length
           n = @colNames[m]
-          console.log "name (right)", n
           @currentCol = n
           @editNext[n] = idx
-          #@clickNext(n)
-          #return
-      else if colDir is -1
-        m = @colIdx[name] - 1
-        if m>=0
-          n = @colNames[m]
-          console.log "name (left)", n
-          @currentCol = n
-          @editNext[n] = idx
-          #@clickNext(n)
-          #return
       else
         n = name
         @setNext(idx, dir, n)
       
       if changed
         @tableData[name][idx] = val
-        console.log "SET TABLE DATA", name, idx, val, @tableData
         @computeAll()
       else
         @clickNext(n)
         
   setNext: (idx, dir, name) ->
-    console.log "%%%%%%%%% SET NEXT", name
     @currentCol = name
     if dir is 0
       @editNext[name] = false
@@ -741,7 +724,6 @@ class Table extends Widget
         @appendCell(name) 
       else
         @editNext[name] = idx unless @nextOk(name)
-    #console.log "setNext (idx, name, dir, editNext)", idx, name, dir, @editNext[name]
   
   clickNext: (name) ->
     console.log "clickNext", name, @editNext
@@ -761,81 +743,40 @@ class Table extends Widget
     @focusCell = null
   
   appendCell: (name) ->
-    # ZZZ shouldn't need to pass name?
-    console.log "append", @v0[@first], @tableData
-    #@v0[@first].push 0
-    
     # Append cell for *all* editable columns.
     for n, cell of @editableCells
       @tableData[n].push null
-      @editableCells[n].push null
-    
-    console.log "editNext", @editNext[name]
+      #@editableCells[n].push null
     @computeAll()
-    #cell = new EditableCell
-    #  container: @editableCells[idx-1].container
-    #  val: 0  # TODO: need to format for display?
-    #  callback: @cellAction(name, idx)
-    #@editableCells.push cell
   
   focusAction: (name, idx) ->
-    =>
-      console.log "********* FOCUS ACTION", name, idx
-      @focusCell = {name, idx}
+    => @focusCell = {name, idx}
   
   cellInsertAction: (name, idx) ->
     =>
-      console.log "INSERT", name, idx
       @currentCol = name
       for n, cell of @editableCells
-        @tableData[n].splice(idx, 0, null)  # TODO: align other columns
+        @tableData[n].splice(idx, 0, null)
         @editNext[n] = idx
       @computeAll()
-      #if idx is @editableCells.length-1
-      #  console.log "DELETE", idx, @tableData[name]
-      #  @tableData[name].pop()
-      #  @editableCells.pop()
-      #  @editNext = idx - 1
-      #  @computeAll()
         
   cellDeleteAction: (name, idx) ->
     =>
-      #@tableData[name].pop()
-      
-      # TODO: Check other columns empty?
-      
       @focusCell = null  # needed?
-      
       @currentCol = name
       for n, cell of @editableCells
         @tableData[n].splice(idx, 1)
-        #@editableCells.pop()
-      
-      @editNext[name] = if idx>1 then idx - 1 else idx=0
+      @editNext[name] = if idx>1 then idx-1 else 0
       @computeAll()
-      #return
-      # old
-      # if idx is @editableCells[name].length-1
-      #   console.log "DELETE", idx, @tableData[name]
-      #   @tableData[name].pop()
-      #   @editableCells[name].pop()
-      #   @editNext[name] = idx - 1
-      #   @computeAll()
         
   cellPasteAction: (name, idx) ->
-    
     # NOT IMPLEMENTED for multiple columns?  Does it need to change?
-    
     (idx, val) =>
-      #e.preventDefault()
-      #text = 'hello'
-      #console.log "PASTE", name, idx, text, val.split(" ")
       vals = val.split(", ").join(" ").split(" ")
       for v, i in vals
         @tableData[name][idx+i] = parseFloat(v)
       @editNext[name] = idx
       @computeAll()
-      #setTimeout (-> console.log(e.clipboardData.getData('Text'))), 1000 #, val 
    
   format: (x) ->
     if x is 0 or Number.isInteger?(x) and Math.abs(x)<1e10

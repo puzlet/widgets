@@ -228,7 +228,11 @@ class Table extends Widget
     
     @appendToCanvas @table
     
-    $blab.tableData ?= {}
+    @tablesFile = $blab.resources.find "tables.json"
+    
+    unless $blab.tableData
+      $blab.tableData = if @tablesFile then JSON.parse(@tablesFile.content) else {}
+    
     $blab.tableData[@id] ?= {}
     @tableData = $blab.tableData[@id]
     
@@ -690,14 +694,11 @@ class Table extends Widget
   
   
   cellAction: (name, idx, val, changed, dir, colDir) ->
-    
     @setNext(name, idx, dir, colDir)
-    
-    if @editNext[name]>=@editableCells[name].length
-      @appendRow(name)
-    
+    @appendRow(name) if @editNext[name]>=@editableCells[name].length
     if changed
       @tableData[name][idx] = val
+      @store()
       @computeAll()
     else
       @clickNext(@currentCol)
@@ -729,6 +730,7 @@ class Table extends Widget
   appendRow: (name) ->
     # Append cell for *all* editable columns.
     @tableData[n].push(null) for n, cell of @editableCells
+    @store()
     @computeAll()
   
   insertRow: (name, idx) ->
@@ -736,6 +738,7 @@ class Table extends Widget
     for n, cell of @editableCells
       @tableData[n].splice(idx, 0, null)
       @editNext[n] = idx
+    @store()
     @computeAll()
     
   deleteRow: (name, idx) ->
@@ -743,6 +746,7 @@ class Table extends Widget
     @currentCol = name
     @tableData[n].splice(idx, 1) for n, cell of @editableCells
     @editNext[name] = if idx>1 then idx-1 else 0
+    @store()
     @computeAll()
   
   paste: (name, idx, val) ->
@@ -751,6 +755,7 @@ class Table extends Widget
     for v, i in vals
       @tableData[name][idx+i] = parseFloat(v)
     @editNext[name] = idx
+    @store()
     @computeAll()
   
   # To delete.
@@ -761,6 +766,7 @@ class Table extends Widget
       for v, i in vals
         @tableData[name][idx+i] = parseFloat(v)
       @editNext[name] = idx
+      @store()
       @computeAll()
    
   checkForFocusCell: ->
@@ -769,6 +775,10 @@ class Table extends Widget
     @currentCol = @focusCell.name
     @editNext[@currentCol] = @focusCell.idx
     @focusCell = null
+    
+  store: ->
+    @tablesFile.content = JSON.stringify($blab.tableData, null, 2)
+    $.event.trigger "codeNodeChanged"  # ZZZ should do via ace node set?
    
   format: (x) ->
     if x is 0 or Number.isInteger?(x) and Math.abs(x)<1e10
@@ -795,7 +805,9 @@ class EditableCell
         #e.preventDefault()
         setTimeout (=> @selectElementContents @div[0]), 0
       
-      click: (e) => @click() #e.stopPropagation()
+      click: (e) =>
+        e.stopPropagation()
+        @click(e)
       keydown: (e) => @keyDown(e)
       change: (e) => @change(e)
       blur: (e) => setTimeout (=> @change(e)), 100 #@reset()  # Not quite right - needs to select new cell that click on.
@@ -816,7 +828,7 @@ class EditableCell
     sel.removeAllRanges()
     sel.addRange(range)
   
-  click: ->
+  click: (e) ->
     @div.focus()
     
   reset: ->

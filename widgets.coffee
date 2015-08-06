@@ -232,24 +232,10 @@ class Table extends Widget
     $blab.tableData[@id] ?= {}
     @tableData = $blab.tableData[@id]
     
-    #self = this
-    #handler = ->
-      #console.log "%%%%%%%%%%%%%%%%%%%% compiled compute.coffee"
-      #return unless data.url is "compute.coffee"
-    #  self.setFunctions()
-      
-    #$(document).off "compiledCoffeeScript", (evt, data) -> handler(evt, data)
-#    console.log "^^^^^^^^^^ LISTENER", @spec
-    # ZZZ unbind?
-    #$(document).off "blabcompute", => @setFunctions()
     $(document).on "blabcompute", => @setFunctions()
     
     #(document.body).removeEventListener "copy"
     #(document.body).addEventListener "copy", (e) => console.log "doc copy"
-    
-    #@table.on "copy", (e) =>
-    #  e.preventDefault()
-    #  console.log "MAIN COPY"
     
     @setVal([[0]])
   
@@ -543,206 +529,164 @@ class Table extends Widget
   initialize: ->
   
   setVal: (v) ->
+    
     @setUsed()
     
     unless v[0] instanceof Array
       # Doesn't yet handle multiple objects (rows)
+      # Need to do similar check as one below?  [] and [->]
       @v0 = v[0]
       @first = null
       return @setValObject()
-      
-    # Check here for empty array args, or function args.
-    # What if have [1, 2, 3] in mix?  just treat as init conditions?  don't allow?
     
-    if v[0].length is 0  # need to generalize
-      o = {}
-      for val, idx in v
-        if val.length is 0
-          o[idx] = val  # Arg is []
-        else
-          #if typeof val is "function"
-          o[idx] = val[0]
-      @v0 = o
-      console.log "v0", @v0
-      @first = null
-      return @setValObject()
+    # Currently, we don't support constant value columns mixed in with [] and [->].
+    o = {}
+    invalid = false
+    for val, idx in v
+      l = val.length
+      if l is 0
+        dynamic = true
+        editable = true
+        o[idx] = val  # Arg is []
+      else if l is 1 and typeof val[0] is "function"
+        dynamic = true
+        o[idx] = val[0]
+      else
+        invalid = true
+        break
     
-    #--------------------#
-    
-    @setColGroup(v.length)
-    
-    @tbody.empty()
-    row = []
-    for x, idx in v[0]
-      tr = $ "<tr>"
-      @tbody.append tr
-      for i in [0...v.length]
-        d = v[i][idx]
-        val = if typeof d is "number" then @format(d) else d
-        tr.append "<td class='table-cell'>"+val+"</td>"
-    @value = v
-    
-    @mouseEvents()
-    
-    null
-    
-  OLD_setVal: (v) ->
-    @setUsed()
-    
-    unless v[0] instanceof Array
-      # Doesn't yet handle multiple objects (rows)
-      @v0 = v[0]
-      @first = null
-      return @setValObject()
-      
-    @setColGroup(v.length)
-    
-    @tbody.empty()
-    row = []
-    for x, idx in v[0]
-      tr = $ "<tr>"
-      @tbody.append tr
-      for i in [0...v.length]
-        d = v[i][idx]
-        val = if typeof d is "number" then @format(d) else d
-        tr.append "<td class='table-cell'>"+val+"</td>"
-    @value = v
-    
-    @mouseEvents()
-    
-    null
+    if dynamic
+      if invalid
+        console.log "Invalid table signature."  # Throw error?
+        return null
+      else unless editable
+        console.log "Must have at least one editable column."
+        return null
+      else
+        @v0 = o
+        @first = null  # ZZZ dup code?
+        return @setValObject()
+    else
+      @setValRegular(v)
   
+  setValRegular: (v) ->
+    
+    @setColGroup(v.length)
+    
+    @tbody.empty()
+    row = []
+    for x, idx in v[0]
+      tr = $ "<tr>"
+      @tbody.append tr
+      for i in [0...v.length]
+        d = v[i][idx]
+        val = if typeof d is "number" then @format(d) else d
+        tr.append "<td class='table-cell'>"+val+"</td>"
+    @value = v
+    
+    @mouseEvents()
+    
+    null
   
   setValObject: ->
     
-    # Doesn't yet handle multiple objects (rows)
-    
-    #console.log "Table object mode", @v0
-    
     # TODO: define in constructor?
-    # ZZZ not needed now?
-    @t ?= {}  # Table object after evaluation
-    
-    cols = []  # Columns
-    
+    @editableCells = {}
+    @functionCells = {}
     @funcs = {}
+    @isFunc = {}
+    @editableCols = []  # Columns (editable)
+    @t ?= {}  # Table object after evaluation
+    @editNext ?= {}  # Needs to retain state from last computation.
     
-    numEd = 0
+    numCols = 0
     
     for name, val of @v0
-      
-      @first = name unless @first
-      if typeof val is "function"
+      numCols++
+      @first = name unless @first  # Bug if function first col?
+      @isFunc[name] = typeof val is "function"
+      if @isFunc[name]
+        @functionCells[name] ?= []
         @funcs[name] = val
-        val = (0 for t in @t[@first])  # initialize to zero for function calls.  TODO: better way here?
+        @t[name] = (0 for v in @t[@first])  # initialize to zero for function calls. ZZZ should it be for current col?  
       else
-        numEd++
-        @firstTableDataName = name unless @firstTableDataName
+        @firstEditableColName = name unless @firstEditableColName
+        @editableCells[name] ?= []
+        # ZZZ: val should be length zero if data? 
         if val.length is 0 then val = [null]
         @tableData[name] ?= val
         val = @tableData[name]
-        
-      @t[name] = (v for v in val)  # copy
-      @checkNull(name)
-      #val = [val] unless Array.isArray(val)  # ZZZ not needed?
-      cols.push @t[name]  # needed to return as [...]
-      
-    @setColGroup(cols.length)
+        @t[name] = (v for v in val)  # Must do copy here.
+        @checkNull(name)
+        @editableCols.push @t[name]
     
-    @setVal2() # cols
-    
-    if numEd is 1 then cols[0] else cols
-    
-  checkNull: (name) ->
-    for v, idx in @t[name]
-      if v is null
-        @t[name][idx] = 0
-  
-  setVal2: ->
-    
-    @tbody.empty()
-    row = []
-    
-    @editableCells = {}  # TODO: use similar naming as functionCells.
-    @functionCells = {}
-    @editNext ?= {}  # Needs to retain state from last computation.
-    
-    @currentCol ?= @first  # Assumes editable?
-    
-    colFirst = if @firstTableDataName then @tableData[@firstTableDataName] else @v0[@first]
-    
-    for x, idx in colFirst  # TODO: assumes @first is editable.
-      tr = $ "<tr>"
-      @tbody.append tr
-      for name, v of @v0
-        vs = @tableData[name]
-        d = if vs then vs[idx] else @t[name][idx]  # ZZZ needed only if not function.
-        td = $ "<td>"
-        tr.append td
-        
-        if typeof v is "function"
-          @functionCells[name] ?= []
-          @functionCells[name].push td
-        else
-          cell = new EditableCell
-            container: td
-            idx: idx
-            val: d  # TODO: need to format for display?
-            callback: @cellAction(name, idx)
-            del: @cellDeleteAction(name, idx)
-            insert: @cellInsertAction(name, idx)
-            paste: @cellPasteAction(name, idx)
-            clickCell: @focusAction(name, idx)  # Later: needs to set clickNext params.
-          @editableCells[name] ?= []
-          @editableCells[name].push cell
-          
     @colNames = (name for name, cell of @editableCells)
     @colIdx = {}
     @colIdx[name] = idx for name, idx in @colNames
     
-    # Initialize @editNext - better loop?  e.g., over @editableCells.
-    #for name, v of @v0
-    #  continue if typeof v is "function"
-    #  @editNext[name] = false
+    @currentCol ?= @first  # Assumes editable?
     
-    #@mouseEvents()
+    # Set table cells
+    @setColGroup(numCols)
+    @tbody.empty()
+    for x, idx in @tableData[@firstEditableColName]
+      tr = $ "<tr>"
+      @tbody.append tr
+      for name, v of @v0
+        td = $ "<td>"  # class table-cell?
+        tr.append td
+        @setCell td, name, idx, v
     
-    # Handle clicking on another cell after changing previous cell (and thus recomputing)
-    if @focusCell
-      console.log "focus cell", @focusCell
-      @currentCol = @focusCell.name
-      @editNext[@currentCol] = @focusCell.idx
-      @focusCell = null
+    # !!!!!!!!!!! @mouseEvents()  # ZZZ !!!!! reinstate later.
     
+    @checkForFocusCell()  # ZZZ move to clickNext?
     @clickNext(@currentCol)
     @value = v
     
-    #console.log "tableData", @tableData
+    # Return value: x or [x, y, ...]
+    if @editableCols.length is 1 then @editableCols[0] else @editableCols
+  
+  setCell: (td, name, idx, v) ->
+    if @isFunc[name]
+      @functionCells[name].push td
+    else
+      vs = @tableData[name]
+      d = if vs then vs[idx] else @t[name][idx]  # ZZZ is this needed?
+      cell = @createEditableCell td, name, idx, d
+      @editableCells[name].push cell
+  
+  checkNull: (name) ->
+    for v, idx in @t[name]
+      @t[name][idx] = 0 if v is null
+  
+  createEditableCell: (container, name, idx, val) ->
+    cell = new EditableCell
+      container: container
+      idx: idx
+      val: val  # TODO: need to format for display?
+      callback: @cellAction(name, idx)
+      del: @cellDeleteAction(name, idx)
+      insert: @cellInsertAction(name, idx)
+      paste: @cellPasteAction(name, idx)
+      clickCell: @focusAction(name, idx)  # Later: needs to set clickNext params.
     
   setFunctions: ->
     
-    #console.log "setFunctions", @id, @funcs, @functionCells
     return unless @funcs
     
-    # ZZZ dup code.
-    colFirst = if @firstTableDataName then @tableData[@firstTableDataName] else @v0[@first]
-    
-    # Alternative: loop over funcs?
-    for name, val of @v0
-      continue unless typeof val is "function"
-      val = @funcs[name](@t)  # pass @t here (as before), in case func needs it (no closure)
-      @t[name] = (v for v in val)  # copy
-    
-    for x, idx in colFirst  # TODO: assumes @first is editable.
-      # Alt: loop over funcs/functionCells array
-      for name, v of @v0
-        continue unless typeof v is "function"
-        return if colFirst.length>@functionCells[name].length  # ZZZ earlier check?
-        td = @functionCells[name][idx]
-        d = @t[name][idx]
-        val = if typeof d is "number" then @format(d) else d
-        td.text val  # ZZZ could use text?
-    
+    for name, func of @funcs
+      
+      try
+        val = func(@t)  # pass @t here, in case func needs it (no closure).
+        @t[name] = (v for v in val)  # copy
+      catch error
+        console.log "====Blabr====", error
+        return
+        
+      for cell, idx in @functionCells[name]
+        d = val[idx]
+        v = if typeof d is "number" then @format(d) else d
+        cell.text v
     
   cellAction: (name, idx) ->
     # Returns set/edited function.
@@ -791,7 +735,7 @@ class Table extends Widget
       @editNext[name] = false
     else
       @editNext[name] = idx + dir
-      if @firstTableDataName and @editNext[name]>=@editableCells[name].length
+      if @firstEditableColName and @editNext[name]>=@editableCells[name].length
         @appendCell(name) 
       else
         @editNext[name] = idx unless @nextOk(name)
@@ -802,10 +746,17 @@ class Table extends Widget
     return unless @nextOk(name)
     @editableCells[name][@editNext[name]].click()
     #@editNext = false
-    
+  
   nextOk: (name) ->
     next = @editNext[name]
     next isnt false and next>=0 and next<@editableCells[name].length
+  
+  checkForFocusCell: ->
+    # Handle clicking on another cell after changing previous cell (and thus recomputing)
+    return unless @focusCell
+    @currentCol = @focusCell.name
+    @editNext[@currentCol] = @focusCell.idx
+    @focusCell = null
   
   appendCell: (name) ->
     # ZZZ shouldn't need to pass name?

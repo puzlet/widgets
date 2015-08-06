@@ -569,6 +569,7 @@ class Table extends Widget
     else
       @setValRegular(v)
   
+
   setValRegular: (v) ->
     
     @setColGroup(v.length)
@@ -588,15 +589,15 @@ class Table extends Widget
     
     null
   
+
   setValObject: ->
     
-    # TODO: define in constructor?
     @editableCells = {}
     @functionCells = {}
     @funcs = {}
     @isFunc = {}
     @editableCols = []  # Columns (editable)
-    @t ?= {}  # Table object after evaluation
+    @t ?= {}  # Table object after evaluation.  Now used for editable cells only.
     @editNext ?= {}  # Needs to retain state from last computation.
     
     numCols = 0
@@ -608,17 +609,10 @@ class Table extends Widget
       if @isFunc[name]
         @functionCells[name] ?= []
         @funcs[name] = val
-        @t[name] = (0 for v in @t[@first])  # initialize to zero for function calls. ZZZ should it be for current col?  
       else
-        @firstEditableColName = name unless @firstEditableColName
         @editableCells[name] ?= []
-        # ZZZ: val should be length zero if data? 
-        if val.length is 0 then val = [null]
-        @tableData[name] ?= val
-        val = @tableData[name]
-        @t[name] = (v for v in val)  # Must do copy here.
-        @checkNull(name)
-        @editableCols.push @t[name]
+        @editableCols.push(@setData(name, val))
+        @firstEditableColName = name unless @firstEditableColName
     
     @colNames = (name for name, cell of @editableCells)
     @colIdx = {}
@@ -632,32 +626,39 @@ class Table extends Widget
     for x, idx in @tableData[@firstEditableColName]
       tr = $ "<tr>"
       @tbody.append tr
-      for name, v of @v0
+      for name, val of @v0
         td = $ "<td>"  # class table-cell?
         tr.append td
-        @setCell td, name, idx, v
+        @setCell td, name, idx, val
     
     # !!!!!!!!!!! @mouseEvents()  # ZZZ !!!!! reinstate later.
     
     @checkForFocusCell()  # ZZZ move to clickNext?
     @clickNext(@currentCol)
-    @value = v
+    @value = @v0  # Is this correct?
     
     # Return value: x or [x, y, ...]
     if @editableCols.length is 1 then @editableCols[0] else @editableCols
+  
+  setData: (name, val) ->
+    if val.length is 0 then val = [null]
+    @tableData[name] ?= val
+    val = @tableData[name]
+    @t[name] = (v for v in val)  # Must do copy here.
+    # Check for null values
+    for v, idx in @t[name]
+      @t[name][idx] = 0 if v is null
+    @t[name]  # Return value
+  
   
   setCell: (td, name, idx, v) ->
     if @isFunc[name]
       @functionCells[name].push td
     else
-      vs = @tableData[name]
-      d = if vs then vs[idx] else @t[name][idx]  # ZZZ is this needed?
+      d = @tableData[name][idx]
       cell = @createEditableCell td, name, idx, d
       @editableCells[name].push cell
   
-  checkNull: (name) ->
-    for v, idx in @t[name]
-      @t[name][idx] = 0 if v is null
   
   createEditableCell: (container, name, idx, val) ->
     cell = new EditableCell
@@ -669,7 +670,8 @@ class Table extends Widget
       insert: @cellInsertAction(name, idx)
       paste: @cellPasteAction(name, idx)
       clickCell: @focusAction(name, idx)  # Later: needs to set clickNext params.
-    
+  
+  
   setFunctions: ->
     
     return unless @funcs
@@ -678,7 +680,6 @@ class Table extends Widget
       
       try
         val = func(@t)  # pass @t here, in case func needs it (no closure).
-        @t[name] = (v for v in val)  # copy
       catch error
         console.log "====Blabr====", error
         return
@@ -687,7 +688,8 @@ class Table extends Widget
         d = val[idx]
         v = if typeof d is "number" then @format(d) else d
         cell.text v
-    
+  
+  
   cellAction: (name, idx) ->
     # Returns set/edited function.
     (val, changed, dir, colDir) =>
@@ -849,7 +851,6 @@ class EditableCell
     {@container, @idx, @val, @callback, @del, @insert, @paste, @clickCell} = @spec
     
     @disp = if @val is null then "" else @val
-    #console.log "CELL", @val, @disp
     
     @div = $ "<div>",
       class: "editable-table-cell"
@@ -861,27 +862,18 @@ class EditableCell
         #e.preventDefault()
         setTimeout (=> @selectElementContents @div[0]), 0
       
-      click: (e) =>
-        #console.log "CLICK CELL", @idx
-        @click() #e.stopPropagation()
+      click: (e) => @click() #e.stopPropagation()
       keydown: (e) => @keyDown(e)
       change: (e) => @change(e)
       blur: (e) => setTimeout (=> @change(e)), 100 #@reset()  # Not quite right - needs to select new cell that click on.
-      
-      #click: (e) =>
-        #e.stopPropagation()
-        #@click()
         
     @div.on "paste", (e) =>
       console.log "cell paste"
       @div.css color: "white"
       setTimeout (=>
         @paste(@idx, @div.text())
-        #@input.show()
       ), 0
-        
-    @input = @div
-        
+    
     @container.append @div
     
   selectElementContents: (el) ->
@@ -892,37 +884,11 @@ class EditableCell
     sel.addRange(range)
   
   click: ->
-    #console.log "**** CLICK", @idx
     @div.focus()
-    #@selectElementContents @div[0]
-    #@div.select()
-    #return
-    #@div.empty()
-    #@createInput()
-    #@div.append @input
-    #@input.focus()
-    #@input.select()
     
   reset: ->
     @div.empty()
     @div.text(if @val is null then "" else @val)
-    
-  # createInput: ->
-  #   @input = $ "<input>",
-  #     class: "editable-table-input-field"
-  #     value: @disp
-  #     click: (e) -> e.stopPropagation()
-  #     keydown: (e) => @keyDown(e)
-  #     change: (e) => @change(e)
-  #     blur: => @reset()
-  #
-  #   @input.on "paste", (e) =>
-  #     console.log "cell paste"
-  #     @input.css color: "white"
-  #     setTimeout (=>
-  #       @paste(@idx, @input.val())
-  #       #@input.show()
-  #     ), 0
         
   keyDown: (e) ->
     
@@ -949,7 +915,6 @@ class EditableCell
     if key is backspace
       console.log "backspace", @idx
       if @div.text() is ""
-#      if @input.val() is ""
         e.preventDefault()
         @del(@idx) 
       return
@@ -975,7 +940,7 @@ class EditableCell
     @done() unless @noChange
   
   done: (dir=0, colDir=0) ->
-    v = @input.text()  # @div?
+    v = @div.text()  # @div?
     if v is ""
       changed = v isnt @disp
       val = null

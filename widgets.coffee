@@ -661,16 +661,15 @@ class Table extends Widget
   
   
   createEditableCell: (container, name, idx, val) ->
-    cell = new EditableCell
+    new EditableCell
       container: container
       idx: idx
       val: val  # TODO: need to format for display?
-      callback: @cellAction(name, idx)
-      del: @cellDeleteAction(name, idx)
-      insert: @cellInsertAction(name, idx)
-      paste: @cellPasteAction(name, idx)
-      clickCell: @focusAction(name, idx)  # Later: needs to set clickNext params.
-  
+      callback: (val, changed, dir, colDir) => @cellAction name, idx, val, changed, dir, colDir
+      del: => @deleteRow name, idx 
+      insert: => @insertRow name, idx
+      paste: (idx, val) => @paste name, idx, val #@cellPasteAction(name, idx)  # Untested
+      clickCell: => @focusCell = {name, idx} #@focusAction(name, idx)  # Later: needs to set clickNext params.
   
   setFunctions: ->
     
@@ -690,85 +689,74 @@ class Table extends Widget
         cell.text v
   
   
-  cellAction: (name, idx) ->
-    # Returns set/edited function.
-    (val, changed, dir, colDir) =>
-      
-      # Don't use focusCell if moving cell with key.
-      if dir isnt 0 or colDir isnt 0
-        @focusCell = null
-      
-      if colDir isnt 0
-        m = @colIdx[name] + colDir
-        if m>=0 and m<@colNames.length
-          n = @colNames[m]
-          @currentCol = n
-          @editNext[n] = idx
-      else
-        n = name
-        @setNext(idx, dir, n)
-      
-      if changed
-        @tableData[name][idx] = val
-        @computeAll()
-      else
-        @clickNext(n)
-        
-  setNext: (idx, dir, name) ->
-    @currentCol = name
-    if dir is 0
-      @editNext[name] = false
+  cellAction: (name, idx, val, changed, dir, colDir) ->
+    
+    @setNext(name, idx, dir, colDir)
+    
+    if @editNext[name]>=@editableCells[name].length
+      @appendRow(name)
+    
+    if changed
+      @tableData[name][idx] = val
+      @computeAll()
     else
-      @editNext[name] = idx + dir
-      if @firstEditableColName and @editNext[name]>=@editableCells[name].length
-        @appendCell(name) 
+      @clickNext(@currentCol)
+  
+  setNext: (name, idx, dir, colDir) ->
+    
+    # Don't use focusCell if moving cell with key.
+    @focusCell = null if dir isnt 0 or colDir isnt 0
+    
+    if colDir isnt 0
+      m = @colIdx[name] + colDir
+      if m>=0 and m<@colNames.length
+        @currentCol = @colNames[m]
+        @editNext[@currentCol] = idx
+    else
+      @currentCol = name
+      if dir is 0
+        @editNext[name] = false
       else
-        @editNext[name] = idx unless @nextOk(name)
+        nextIdx = idx + dir
+        nextIdx = 0 if nextIdx<0
+        @editNext[name] = nextIdx
   
   clickNext: (name) ->
-    console.log "clickNext", name, @editNext
     return unless @nextOk(name)
     @editableCells[name][@editNext[name]].click()
-    #@editNext = false
   
   nextOk: (name) ->
     next = @editNext[name]
     next isnt false and next>=0 and next<@editableCells[name].length
   
-  checkForFocusCell: ->
-    # Handle clicking on another cell after changing previous cell (and thus recomputing)
-    return unless @focusCell
-    @currentCol = @focusCell.name
-    @editNext[@currentCol] = @focusCell.idx
-    @focusCell = null
-  
-  appendCell: (name) ->
+  appendRow: (name) ->
     # Append cell for *all* editable columns.
-    for n, cell of @editableCells
-      @tableData[n].push null
-      #@editableCells[n].push null
+    @tableData[n].push(null) for n, cell of @editableCells
     @computeAll()
   
-  focusAction: (name, idx) ->
-    => @focusCell = {name, idx}
+  insertRow: (name, idx) ->
+    @currentCol = name
+    for n, cell of @editableCells
+      @tableData[n].splice(idx, 0, null)
+      @editNext[n] = idx
+    @computeAll()
+    
+  deleteRow: (name, idx) ->
+    @focusCell = null  # needed?
+    @currentCol = name
+    @tableData[n].splice(idx, 1) for n, cell of @editableCells
+    @editNext[name] = if idx>1 then idx-1 else 0
+    @computeAll()
   
-  cellInsertAction: (name, idx) ->
-    =>
-      @currentCol = name
-      for n, cell of @editableCells
-        @tableData[n].splice(idx, 0, null)
-        @editNext[n] = idx
-      @computeAll()
-        
-  cellDeleteAction: (name, idx) ->
-    =>
-      @focusCell = null  # needed?
-      @currentCol = name
-      for n, cell of @editableCells
-        @tableData[n].splice(idx, 1)
-      @editNext[name] = if idx>1 then idx-1 else 0
-      @computeAll()
-        
+  paste: (name, idx, val) ->
+    # Not tested yet.
+    vals = val.split(", ").join(" ").split(" ")
+    for v, i in vals
+      @tableData[name][idx+i] = parseFloat(v)
+    @editNext[name] = idx
+    @computeAll()
+  
+  # To delete.
   cellPasteAction: (name, idx) ->
     # NOT IMPLEMENTED for multiple columns?  Does it need to change?
     (idx, val) =>
@@ -777,6 +765,13 @@ class Table extends Widget
         @tableData[name][idx+i] = parseFloat(v)
       @editNext[name] = idx
       @computeAll()
+   
+  checkForFocusCell: ->
+    # Handle clicking on another cell after changing previous cell (and thus recomputing)
+    return unless @focusCell
+    @currentCol = @focusCell.name
+    @editNext[@currentCol] = @focusCell.idx
+    @focusCell = null
    
   format: (x) ->
     if x is 0 or Number.isInteger?(x) and Math.abs(x)<1e10
@@ -834,7 +829,7 @@ class EditableCell
   keyDown: (e) ->
     
     key = e.keyCode
-    console.log "key", key, e.shiftKey
+    #console.log "key", key, e.shiftKey
     
     ret = 13
     backspace = 8
@@ -854,7 +849,7 @@ class EditableCell
       return
       
     if key is backspace
-      console.log "backspace", @idx
+      #console.log "backspace", @idx
       if @div.text() is ""
         e.preventDefault()
         @del(@idx) 

@@ -618,8 +618,11 @@ class Table extends Widget
     @tbody.empty()
     row = []
     
-    @editableCells = []  # TODO: use similar naming as functionCells.
+    @editableCells = {}  # TODO: use similar naming as functionCells.
     @functionCells = {}
+    @editNext ?= {}  # Needs to retain state from last computation.
+    
+    @currentCol ?= @first  # Assumes editable?
     
     colFirst = if @firstTableDataName then @tableData[@firstTableDataName] else @v0[@first]
     
@@ -644,13 +647,29 @@ class Table extends Widget
             del: @cellDeleteAction(name, idx)
             insert: @cellInsertAction(name, idx)
             paste: @cellPasteAction(name, idx)
-          @editableCells.push cell
+            clickCell: @focusAction(name, idx)  # Later: needs to set clickNext params.
+          @editableCells[name] ?= []
+          @editableCells[name].push cell
+          
+    @colNames = (name for name, cell of @editableCells)
+    @colIdx = {}
+    @colIdx[name] = idx for name, idx in @colNames
     
-    #console.log "NEW F", @functionCells
+    # Initialize @editNext - better loop?  e.g., over @editableCells.
+    #for name, v of @v0
+    #  continue if typeof v is "function"
+    #  @editNext[name] = false
     
-    @mouseEvents()
+    #@mouseEvents()
     
-    @clickNext()
+    # Handle clicking on another cell after changing previous cell (and thus recomputing)
+    if @focusCell
+      console.log "focus cell", @focusCell
+      @currentCol = @focusCell.name
+      @editNext[@currentCol] = @focusCell.idx
+      @focusCell = null
+    
+    @clickNext(@currentCol)
     @value = v
     
     #console.log "tableData", @tableData
@@ -682,19 +701,97 @@ class Table extends Widget
     
   cellAction: (name, idx) ->
     # Returns set/edited function.
-    (val, changed, dir) =>
-      @setNext(idx, dir, name)
+    (val, changed, dir, colDir) =>
+      console.log "====colDir", colDir, name
+      
+      # Don't use focusCell if moving cell with key.
+      if dir isnt 0 or colDir isnt 0
+        @focusCell = null
+      
+      #if colDir is 1 then @currentCol = "a"  # TEMP
+      # BUG: does not handle case where cell val changed before left/right
+      if colDir is 1
+        m = @colIdx[name] + 1
+        if m<@colNames.length
+          n = @colNames[m]
+          console.log "name (right)", n
+          @currentCol = n
+          @editNext[n] = idx
+          #@clickNext(n)
+          #return
+      else if colDir is -1
+        m = @colIdx[name] - 1
+        if m>=0
+          n = @colNames[m]
+          console.log "name (left)", n
+          @currentCol = n
+          @editNext[n] = idx
+          #@clickNext(n)
+          #return
+      else
+        n = name
+        @setNext(idx, dir, n)
+      
       if changed
         @tableData[name][idx] = val
+        console.log "SET TABLE DATA", name, idx, val, @tableData
         @computeAll()
       else
-        @clickNext()
+        @clickNext(n)
+        
+  setNext: (idx, dir, name) ->
+    console.log "%%%%%%%%% SET NEXT", name
+    @currentCol = name
+    if dir is 0
+      @editNext[name] = false
+    else
+      @editNext[name] = idx + dir
+      if @firstTableDataName and @editNext[name]>=@editableCells[name].length
+        @appendCell(name) 
+      else
+        @editNext[name] = idx unless @nextOk(name)
+    #console.log "setNext (idx, name, dir, editNext)", idx, name, dir, @editNext[name]
+  
+  clickNext: (name) ->
+    console.log "clickNext", name, @editNext
+    return unless @nextOk(name)
+    @editableCells[name][@editNext[name]].click()
+    #@editNext = false
+    
+  nextOk: (name) ->
+    next = @editNext[name]
+    next isnt false and next>=0 and next<@editableCells[name].length
+  
+  appendCell: (name) ->
+    # ZZZ shouldn't need to pass name?
+    console.log "append", @v0[@first], @tableData
+    #@v0[@first].push 0
+    
+    # Append cell for *all* editable columns.
+    for n, cell of @editableCells
+      @tableData[n].push null
+      @editableCells[n].push null
+    
+    console.log "editNext", @editNext[name]
+    @computeAll()
+    #cell = new EditableCell
+    #  container: @editableCells[idx-1].container
+    #  val: 0  # TODO: need to format for display?
+    #  callback: @cellAction(name, idx)
+    #@editableCells.push cell
+  
+  focusAction: (name, idx) ->
+    =>
+      console.log "********* FOCUS ACTION", name, idx
+      @focusCell = {name, idx}
   
   cellInsertAction: (name, idx) ->
     =>
       console.log "INSERT", name, idx
-      @tableData[name].splice(idx, 0, null)  # TODO: align other columns
-      @editNext = idx
+      @currentCol = name
+      for n, cell of @editableCells
+        @tableData[n].splice(idx, 0, null)  # TODO: align other columns
+        @editNext[n] = idx
       @computeAll()
       #if idx is @editableCells.length-1
       #  console.log "DELETE", idx, @tableData[name]
@@ -706,20 +803,31 @@ class Table extends Widget
   cellDeleteAction: (name, idx) ->
     =>
       #@tableData[name].pop()
-      @tableData[name].splice(idx, 1)
-      #@editableCells.pop()
-      @editNext = if idx>1 then idx - 1 else idx=0
+      
+      # TODO: Check other columns empty?
+      
+      @focusCell = null  # needed?
+      
+      @currentCol = name
+      for n, cell of @editableCells
+        @tableData[n].splice(idx, 1)
+        #@editableCells.pop()
+      
+      @editNext[name] = if idx>1 then idx - 1 else idx=0
       @computeAll()
-      return
+      #return
       # old
-      if idx is @editableCells.length-1
-        console.log "DELETE", idx, @tableData[name]
-        @tableData[name].pop()
-        @editableCells.pop()
-        @editNext = idx - 1
-        @computeAll()
+      # if idx is @editableCells[name].length-1
+      #   console.log "DELETE", idx, @tableData[name]
+      #   @tableData[name].pop()
+      #   @editableCells[name].pop()
+      #   @editNext[name] = idx - 1
+      #   @computeAll()
         
   cellPasteAction: (name, idx) ->
+    
+    # NOT IMPLEMENTED for multiple columns?  Does it need to change?
+    
     (idx, val) =>
       #e.preventDefault()
       #text = 'hello'
@@ -727,41 +835,9 @@ class Table extends Widget
       vals = val.split(", ").join(" ").split(" ")
       for v, i in vals
         @tableData[name][idx+i] = parseFloat(v)
-      @editNext = idx
+      @editNext[name] = idx
       @computeAll()
       #setTimeout (-> console.log(e.clipboardData.getData('Text'))), 1000 #, val 
-  
-  setNext: (idx, dir, name) ->
-    if dir is 0
-      @editNext = false
-    else
-      @editNext = idx + dir
-      if @firstTableDataName and @editNext>=@editableCells.length
-        @appendCell(name) 
-      else
-        @editNext = idx unless @nextOk()
-      
-  appendCell: (name) ->
-    console.log "append", @v0[@first], @tableData
-    #@v0[@first].push 0
-    @tableData[name].push null
-    @editableCells.push null
-    console.log "editNext", @editNext
-    @computeAll()
-    #cell = new EditableCell
-    #  container: @editableCells[idx-1].container
-    #  val: 0  # TODO: need to format for display?
-    #  callback: @cellAction(name, idx)
-    #@editableCells.push cell
-  
-  clickNext: ->
-    #console.log "clickNext", @editNext
-    return unless @nextOk()
-    @editableCells[@editNext].click()
-    #@editNext = false
-    
-  nextOk: ->
-    @editNext isnt false and @editNext>=0 and @editNext<@editableCells.length
    
   format: (x) ->
     if x is 0 or Number.isInteger?(x) and Math.abs(x)<1e10
@@ -774,7 +850,7 @@ class EditableCell
   
   constructor: (@spec) ->
     
-    {@container, @idx, @val, @callback, @del, @insert, @paste} = @spec
+    {@container, @idx, @val, @callback, @del, @insert, @paste, @clickCell} = @spec
     
     @disp = if @val is null then "" else @val
     #console.log "CELL", @val, @disp
@@ -784,16 +860,19 @@ class EditableCell
       text: @disp
       contenteditable: true
       
-      focus: (e) => 
+      focus: (e) =>
+        @clickCell()
         #e.preventDefault()
         setTimeout (=> @selectElementContents @div[0]), 0
       
-      click: (e) => @click() #e.stopPropagation()
+      click: (e) =>
+        #console.log "CLICK CELL", @idx
+        @click() #e.stopPropagation()
       keydown: (e) => @keyDown(e)
       change: (e) => @change(e)
-      blur: => @reset()
+      blur: (e) => setTimeout (=> @change(e)), 100 #@reset()  # Not quite right - needs to select new cell that click on.
       
-      click: (e) =>
+      #click: (e) =>
         #e.stopPropagation()
         #@click()
         
@@ -805,7 +884,7 @@ class EditableCell
         #@input.show()
       ), 0
         
-    @input = @div 
+    @input = @div
         
     @container.append @div
     
@@ -817,46 +896,48 @@ class EditableCell
     sel.addRange(range)
   
   click: ->
-    console.log "**** CLICK", @idx
+    #console.log "**** CLICK", @idx
     @div.focus()
     #@selectElementContents @div[0]
     #@div.select()
-    return
-    @div.empty()
-    @createInput()
-    @div.append @input
-    @input.focus()
-    @input.select()
+    #return
+    #@div.empty()
+    #@createInput()
+    #@div.append @input
+    #@input.focus()
+    #@input.select()
     
   reset: ->
     @div.empty()
     @div.text(if @val is null then "" else @val)
     
-  createInput: ->
-    @input = $ "<input>",
-      class: "editable-table-input-field"
-      value: @disp
-      click: (e) -> e.stopPropagation()
-      keydown: (e) => @keyDown(e)
-      change: (e) => @change(e)
-      blur: => @reset()
-      
-    @input.on "paste", (e) =>
-      console.log "cell paste"
-      @input.css color: "white"
-      setTimeout (=>
-        @paste(@idx, @input.val())
-        #@input.show()
-      ), 0
+  # createInput: ->
+  #   @input = $ "<input>",
+  #     class: "editable-table-input-field"
+  #     value: @disp
+  #     click: (e) -> e.stopPropagation()
+  #     keydown: (e) => @keyDown(e)
+  #     change: (e) => @change(e)
+  #     blur: => @reset()
+  #
+  #   @input.on "paste", (e) =>
+  #     console.log "cell paste"
+  #     @input.css color: "white"
+  #     setTimeout (=>
+  #       @paste(@idx, @input.val())
+  #       #@input.show()
+  #     ), 0
         
   keyDown: (e) ->
     
     key = e.keyCode
-    #console.log "key", key, e.shiftKey
+    console.log "key", key, e.shiftKey
     
     ret = 13
     backspace = 8
+    left = 37
     up = 38
+    right = 39
     down = 40
     
     if key is ret
@@ -877,28 +958,39 @@ class EditableCell
         @del(@idx) 
       return
     
-    return unless key in [up, down]
-    e.preventDefault()
-    dir = if key is down then 1 else -1
-    @done(dir)
+    return unless key in [left, up, right, down]
+    e.preventDefault() if key in [up, down]
+    
+    # NOT YET WORKING - need to make work with edit mode.  click on selected text to edit.
+    #if key in [left, right]
+    #  r = window.getSelection().getRangeAt(0)
+    #  console.log "+++++ SEL", r.startContainer, r.startOffset, r.endOffset
+    #  return unless r.startOffset?
+    #  return unless (key is left and r.startOffset is 0) or (key is right and r.startOffset is r.startContainer.length)
+      #return
+      #setTimeout (-> console.log "SEL", r.startContainer, r.startOffset, r.endOffset), 100
+      #return
+    
+    dir = if key is down then 1 else if key is up then -1 else 0
+    colDir = if key is right then 1 else if key is left then -1 else 0
+    @done(dir, colDir)
     
   change: (e) ->
     @done() unless @noChange
   
-  done: (dir=0) ->
-    v = @input.text()
-    #v = @input.val()
+  done: (dir=0, colDir=0) ->
+    v = @input.text()  # @div?
     if v is ""
       changed = v isnt @disp
       val = null
       @val = val
-      @callback val, changed, dir
+      @callback val, changed, dir, colDir
     else
       val = if v then parseFloat(v) else null # TODO: what if text cell?
       changed = val isnt @val
       @val = val if changed
       @disp = @val
-      @callback val, changed, dir
+      @callback val, changed, dir, colDir
 
 
 class Plot extends Widget

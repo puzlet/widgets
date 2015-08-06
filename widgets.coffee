@@ -551,6 +551,24 @@ class Table extends Widget
       @first = null
       return @setValObject()
       
+    # Check here for empty array args, or function args.
+    # What if have [1, 2, 3] in mix?  just treat as init conditions?  don't allow?
+    
+    if v[0].length is 0  # need to generalize
+      o = {}
+      for val, idx in v
+        if val.length is 0
+          o[idx] = val  # Arg is []
+        else
+          #if typeof val is "function"
+          o[idx] = val[0]
+      @v0 = o
+      console.log "v0", @v0
+      @first = null
+      return @setValObject()
+    
+    #--------------------#
+    
     @setColGroup(v.length)
     
     @tbody.empty()
@@ -568,6 +586,33 @@ class Table extends Widget
     
     null
     
+  OLD_setVal: (v) ->
+    @setUsed()
+    
+    unless v[0] instanceof Array
+      # Doesn't yet handle multiple objects (rows)
+      @v0 = v[0]
+      @first = null
+      return @setValObject()
+      
+    @setColGroup(v.length)
+    
+    @tbody.empty()
+    row = []
+    for x, idx in v[0]
+      tr = $ "<tr>"
+      @tbody.append tr
+      for i in [0...v.length]
+        d = v[i][idx]
+        val = if typeof d is "number" then @format(d) else d
+        tr.append "<td class='table-cell'>"+val+"</td>"
+    @value = v
+    
+    @mouseEvents()
+    
+    null
+  
+  
   setValObject: ->
     
     # Doesn't yet handle multiple objects (rows)

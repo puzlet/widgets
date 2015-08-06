@@ -724,8 +724,7 @@ class Table extends Widget
   clickNext: (name) ->
     next = @editNext[name]
     ok = next isnt false and next>=0 and next<@editableCells[name].length
-    return unless ok
-    @editableCells[name][@editNext[name]].click()
+    @editableCells[name][@editNext[name]].click() if ok
   
   appendRow: (name) ->
     # Append cell for *all* editable columns.

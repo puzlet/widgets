@@ -573,7 +573,7 @@ class Table extends Widget
     else
       @setValRegular(v)
   
-
+  
   setValRegular: (v) ->
     
     @setColGroup(v.length)
@@ -593,7 +593,7 @@ class Table extends Widget
     
     null
   
-
+  
   setValObject: ->
     
     @editableCells = {}
@@ -673,7 +673,8 @@ class Table extends Widget
       del: => @deleteRow name, idx 
       insert: => @insertRow name, idx
       paste: (idx, val) => @paste name, idx, val #@cellPasteAction(name, idx)  # Untested
-      clickCell: => @focusCell = {name, idx} #@focusAction(name, idx)  # Later: needs to set clickNext params.
+      clickCell: (focus=true) =>
+        @focusCell = if focus then {name, idx} else null #@focusAction(name, idx)  # Later: needs to set clickNext params.
   
   setFunctions: ->
     
@@ -810,7 +811,9 @@ class EditableCell
         @click(e)
       keydown: (e) => @keyDown(e)
       change: (e) => @change(e)
-      blur: (e) => setTimeout (=> @change(e)), 100 #@reset()  # Not quite right - needs to select new cell that click on.
+      blur: (e) =>
+        @clickCell(false)
+        setTimeout (=> @change(e)), 100 #@reset()  # Not quite right - needs to select new cell that click on.
         
     @div.on "paste", (e) =>
       console.log "cell paste"

@@ -44,7 +44,7 @@ class Input extends Widget
     @inputContainer = $ "<div>",
       class: "blab-input"
       id: @domId()
-      click: => clickEvent()
+      mouseup: => clickEvent()
     @outer.append @inputContainer
     
     @outer.click -> clickEvent()
@@ -132,7 +132,7 @@ class Slider extends Widget
       #click: => clickEvent()
     @outer.append @sliderContainer
         
-    @outer.click -> clickEvent()
+    @outer.mouseup -> clickEvent()
     
     @textContainer = $ "<div>", class: "slider-text-container"
     @outer.append @textContainer
@@ -817,7 +817,7 @@ class Plot extends Widget
       css:
         width: @width ? 400
         height: @height ? 200
-      click: => @select()
+      mouseup: => @select()
     
     @plot.css(@css) if @css
     

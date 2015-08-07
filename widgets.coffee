@@ -207,7 +207,8 @@ class Table extends Widget
     @table = $ "<table>",
       id: @domId()
       class: "widget"
-      click: => @select()
+      mouseup: =>  # Use mouseup instead of click so can control propagation.
+        @select()
     
     @table.css(@css) if @css
     
@@ -619,11 +620,11 @@ class TableCellSelector
   
   constructor: (@tableId) ->
     
-    console.log "Table cell selector", @tableId
+    #console.log "Table cell selector", @tableId
     
     @cell = $("##{@tableId} td")
     
-    @cell.unbind(e) for e in ["click", "blur", "mousedown", "mouseenter", "mouseleave", "mouseup"]
+    @cell.unbind(e) for e in ["click", "blur", "mousedown", "mousemove", "mouseenter", "mouseleave", "mouseup"]
     
     # To stop layout editor:
     # But note that table widget can be selected ony via table heading.  another way?
@@ -632,6 +633,7 @@ class TableCellSelector
     @cell.blur (e) => console.log "blur"
     
     @cell.mousedown (e) => @mousedown(e)
+    @cell.mousemove (e) => @mousemove(e)
     @cell.mouseleave (e) => @mouseleave(e)
     @cell.mouseenter (e) => @mouseenter(e)
     @cell.mouseup (e) => @mouseup(e)
@@ -666,6 +668,9 @@ class TableCellSelector
     
   mousedown: (e) ->
     
+    console.log "mousedown"
+    @stop(e)
+    
     @deselectAll()
     
     @down = true
@@ -675,7 +680,17 @@ class TableCellSelector
     [row, @column] = @coord(e)
     @start = @end = row
     
-    #window.getSelection().removeAllRanges()  # IE: document.selection.empty()
+    setTimeout (=> @initFirst(e)), 100
+  
+  initFirst: (e) ->
+    return unless @first and @down
+    @select e
+    @first = false
+  
+  mousemove: (e) ->
+    return unless @first and @down
+    @stop(e)
+    @initFirst(e)
   
   mouseleave: (e) =>
     
@@ -687,10 +702,6 @@ class TableCellSelector
     if col isnt @column
       @reset()
       return
-    
-    if @first
-      @select e
-      @first = false
       
     @inTable = false  # Set on mouseenter
     
@@ -710,7 +721,7 @@ class TableCellSelector
       @reset()
       return
     
-    #window.getSelection().removeAllRanges() unless @isEditable(e)
+    #window.getSelection().removeAllRanges() unless @isEditable(e)  # Covered by CSS now.
       
     @first = false
     

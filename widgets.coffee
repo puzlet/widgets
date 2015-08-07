@@ -243,278 +243,6 @@ class Table extends Widget
     
     @setVal([[0]])
   
-  
-  mouseEvents: ->
-    
-    # TODO: doesn't work properly if move column and then back to diff row.
-    
-    #return
-    
-    # see http://stackoverflow.com/questions/9578162/highlighting-table-cells-on-mouse-drag
-    
-    #console.log "+++++++++++ mouse events", @flag
-    
-    down = false
-    first = false
-    column = null
-    start = -1
-    end = -1
-    last = -1
-    lastLeave = null
-    selected = []
-    vector = []
-    
-    #isEditable = false
-    
-    # need "selected" vector.
-    
-    tdSel = $("##{@domId()} td")
-    
-    # ZZZ other unbinds here, too.
-    tdSel.unbind "mouseenter"
-    tdSel.unbind "mouseleave"
-    
-    row = (e) -> $(e.target).parent().index()
-    col = (e) -> $(e.target).index()
-    
-    highlight = (e) ->
-      $(e.target).css background: "rgb(180, 213, 254)"
-      
-    highlightSelected: ->
-      
-    normal = (e) ->
-      $(e.target).css background: ""  # ZZZ Need to revert to what it was?
-    
-    clearId = null
-    
-    clear = =>
-      if selected.length
-        normal(s) for s in selected
-      down = false
-      first = false
-      column = null
-      start = -1
-      end = -1
-      last = -1
-      lastLeave = null
-      selected = []
-      vector = []
-      #isEditable = false
-      
-    
-    #$(document).on "blabmousedown", =>
-    #  console.log "blabmd"
-    
-    #unless @bodyMouseDown
-    # TODO: not best way to do this.
-    #unless @flag
-    $(document).on "blabmousedown", (e) =>
-      #console.log "body mousedown"
-      #return if down
-      clear() unless down
-          #clearId = setTimeout (-> clear()), 1000
-      #  @bodyMouseDown = true
-      #@flag = true
-    
-    tdSel.blur (e) => console.log "blur"
-    
-    tdSel.mousedown (e) =>
-      #return
-      
-#      e.preventDefault() unless $(e.target).attr("class") is "editable-table-cell"
-      #console.log "-----target", $(e.target).attr "class"
-      
-      #tdSel.focus()
-      #return
-      
-      #clearTimeout(clearId) if clearId
-      #clearId = null
-      #e.preventDefault()
-      #console.log "td mousedown", row(e), col(e)
-      if selected.length
-        normal(s) for s in selected
-      selected = []
-      down = true
-      first = true
-      column = col(e)
-      #setTimeout (=> @table.click()), 100
-      
-      idx = row(e)
-      
-      #if down and first
-      #highlight e
-      start = idx
-      end = idx
-      #selected.push e
-      
-      #tdSel.select()
-      window.getSelection().removeAllRanges()  # IE: document.selection.empty()
-      #first = false
-    
-    # tdSel.mousemove (e) ->
-    #   return unless down
-    #   idx = row(e)
-    #   console.log "idx/end", idx, start
-    #   if idx isnt start
-    #     window.getSelection().removeAllRanges()
-    #     console.log "*******Prevent"
-    #     e.preventDefault()
-    #     e.stopPropagation()
-      
-    
-    # tdSel.mousemove (e) ->
-    #   e.preventDefault()
-    #   if down and first
-    #     highlight e
-    #     idx = row(e)
-    #     column = col(e)
-    #     end = idx
-    #     selected.push e
-    #     first = false
-      
-    tdSel.mouseenter (e) =>
-      return unless down
-      return unless col(e) is column
-      
-      e.preventDefault()
-      e.stopPropagation()
-      
-      window.getSelection().removeAllRanges() unless $(e.target).attr("class") is "editable-table-cell"
-      #window.getSelection().removeAllRanges()
-      
-      
-      first = false
-      idx = row(e)
-      #console.log "************* mouseenter" #, last, idx #, e.target
-      
-      if lastLeave and row(lastLeave)>idx
-        selected.pop()
-        normal lastLeave
-      
-      if idx>end
-        highlight e
-        selected.push e
-      
-      end = idx
-        #$(lastLeave.target).css background: "white" #if down and idx>end
-      #last = idx
-    
-    tdSel.mouseleave (e) =>
-      return unless down
-      return unless col(e) is column
-      
-#      window.getSelection().removeAllRanges() unless $(e.target).attr("class") is "editable-table-cell"
-      #window.getSelection().removeAllRanges()
-      
-      
-      e.preventDefault()
-      
-      console.log "************* mouseleave"  #, last, idx #, e.target
-      
-      
-      idx = row(e)
-      
-      if down and first
-        highlight e
-        selected.push e
-        #end = idx
-        #selected.push e
-        first = false
-      
-      #$(e.target).css background: "white" if down and idx>end
-      lastLeave = e
-      #last = idx
-    
-    #vector = []
-    
-    tdSel.mouseup (e) =>
-      e.preventDefault()
-      e.stopPropagation()
-      
-#      window.getSelection().removeAllRanges() unless $(e.target).attr("class") is "editable-table-cell"
-      
-      #console.log "mouseup", e.target
-      down = false
-      #console.log "selected", selected
-     #console.log "selected"
-      
-      if selected.length is 1
-        normal start
-      
-      vector = []
-      for s in selected
-        vector.push $(s.target).text()
-      #setTimeout (=> @table.focus()), 1000
-        #$(s.target).select()
-      #@table.click()
-      #if selected.length
-      #  selected[0].target.addEventListener "copy", (e) => console.log "COPY!"
-      
-    #tdSel.click (e) =>
-    #  e.preventDefault()
-    #  e.stopPropagation()
-    
-    $(document).on "blabcopy", (ev, data) =>
-      console.log "COPY!", @id, vector
-      return unless vector.length
-      console.log "data", data
-      e = data.original
-      e.preventDefault()
-      string = vector.join ", "
-      e.clipboardData.setData('Text', string)
-    
-    
-    $(document).on "blabpaste", (ev, data) =>
-      console.log "PASTE!", @id
-      return unless selected.length
-      #return unless vector.length
-      console.log "data", data
-      e = data.original
-      e.preventDefault()
-      #string = vector.join " "
-      t = e.clipboardData.getData('Text')
-      tv = t.split " "
-      console.log "text", tv
-    
-    
-    #@table[0].removeEventListener "copy"
-    # if false #tdSel.length is 0 #and not @listening
-    #
-    #   console.log "+++++++++++++ SETUP copy", @id
-    #   @table[0].addEventListener "copy", (data) =>
-    #     console.log "COPY", vector
-    #     return unless vector.length
-    #     e = data.e
-    #     e.preventDefault()
-    #     string = vector.join " "
-    #     e.clipboardData.setData('text/plain', string)
-        #setTimeout (-> console.log 'Clipboard', e.clipboardData.getData('Text'), e), 1000
-  #      console.log 'Clipboard', e.clipboardData.getData('text/html'), e
-        #return
-      #@listening = true
-          
-      #if down
-      
-    #return
-    
-    #@table.unbind "mousedown"
-    #@table.unbind "mouseup"
-    
-    
-    #@table.mousedown (e) =>
-    #  e.preventDefault()
-    #  console.log "mousedown"#, #$(e.target).attr "class"
-    #  down = true
-      
-    #@table.mousemove (e) =>
-    #  e.preventDefault()
-      #last = $(e.target).parent().index()
-    #  console.log "mousemove", last
-      #$(e.target).css background: "green" if down
-    
-    #console.log "set mouse move listener"
-  
-  
   setColGroup: (n) ->
     
     if n
@@ -589,7 +317,7 @@ class Table extends Widget
         tr.append "<td class='table-cell'>"+val+"</td>"
     @value = v
     
-    @mouseEvents()
+    new TableCellSelector(@domId())
     
     null
   
@@ -635,7 +363,7 @@ class Table extends Widget
         tr.append td
         @setCell td, name, idx, val
     
-    # !!!!!!!!!!! @mouseEvents()  # ZZZ !!!!! reinstate later.
+    new TableCellSelector(@domId())
     
     @checkForFocusCell()  # ZZZ move to clickNext?
     @clickNext(@currentCol)
@@ -672,7 +400,7 @@ class Table extends Widget
       callback: (val, changed, dir, colDir) => @cellAction name, idx, val, changed, dir, colDir
       del: => @deleteRow name, idx 
       insert: => @insertRow name, idx
-      paste: (idx, val) => @paste name, idx, val #@cellPasteAction(name, idx)  # Untested
+      paste: (idx, val) => @paste name, idx, val
       clickCell: (focus=true) =>
         @focusCell = if focus then {name, idx} else null #@focusAction(name, idx)  # Later: needs to set clickNext params.
   
@@ -751,24 +479,12 @@ class Table extends Widget
     @computeAll()
   
   paste: (name, idx, val) ->
-    # Not tested yet.
     vals = val.split(", ").join(" ").split(" ")
     for v, i in vals
       @tableData[name][idx+i] = parseFloat(v)
     @editNext[name] = idx
     @store()
     @computeAll()
-  
-  # To delete.
-  cellPasteAction: (name, idx) ->
-    # NOT IMPLEMENTED for multiple columns?  Does it need to change?
-    (idx, val) =>
-      vals = val.split(", ").join(" ").split(" ")
-      for v, i in vals
-        @tableData[name][idx+i] = parseFloat(v)
-      @editNext[name] = idx
-      @store()
-      @computeAll()
    
   checkForFocusCell: ->
     # Handle clicking on another cell after changing previous cell (and thus recomputing)
@@ -816,11 +532,8 @@ class EditableCell
         setTimeout (=> @change(e)), 100 #@reset()  # Not quite right - needs to select new cell that click on.
         
     @div.on "paste", (e) =>
-      console.log "cell paste"
-      @div.css color: "white"
-      setTimeout (=>
-        @paste(@idx, @div.text())
-      ), 0
+      @div.css color: "white"  # Temporary - cell gets rebuilt when computation done.
+      setTimeout (=> @paste(@idx, @div.text())), 0
     
     @container.append @div
     
@@ -900,6 +613,167 @@ class EditableCell
       @val = val if changed
       @disp = @val
       @callback val, changed, dir, colDir
+
+
+class TableCellSelector
+  
+  constructor: (@tableId) ->
+    
+    console.log "Table cell selector", @tableId
+    
+    @cell = $("##{@tableId} td")
+    
+    @cell.unbind(e) for e in ["click", "blur", "mousedown", "mouseenter", "mouseleave", "mouseup"]
+    
+    # To stop layout editor:
+    # But note that table widget can be selected ony via table heading.  another way?
+    @cell.click (e) => @stop(e)
+    
+    @cell.blur (e) => console.log "blur"
+    
+    @cell.mousedown (e) => @mousedown(e)
+    @cell.mouseleave (e) => @mouseleave(e)
+    @cell.mouseenter (e) => @mouseenter(e)
+    @cell.mouseup (e) => @mouseup(e)
+    
+    # Unbind for blabmousedown/blabmouseup/blabcopy is in blabr.coffee.
+    $(document).on "blabmousedown", (e) =>
+      @reset() unless @down and @inTable
+      
+    $(document).on "blabmouseup", (e) =>
+      @reset() unless @down and @inTable
+    
+    $(document).on "blabcopy", (e, data) => @copy(e, data)
+    
+    @selected = []
+    @reset()
+  
+  reset: ->
+    
+    @deselectAll()
+    
+    @down = false
+    @inTable = false
+    
+    @first = false
+    
+    @column = null
+    @start = -1
+    @end = -1
+    
+    @selected = []
+    @vector = []
+    
+  mousedown: (e) ->
+    
+    @deselectAll()
+    
+    @down = true
+    @inTable = true
+    @first = true
+    
+    [row, @column] = @coord(e)
+    @start = @end = row
+    
+    #window.getSelection().removeAllRanges()  # IE: document.selection.empty()
+  
+  mouseleave: (e) =>
+    
+    return unless @down
+    @stop(e)
+    
+    [row, col] = @coord(e)
+    
+    if col isnt @column
+      @reset()
+      return
+    
+    if @first
+      @select e
+      @first = false
+      
+    @inTable = false  # Set on mouseenter
+    
+    @lastLeave = e
+    @lastLeaveRow = row
+    
+  mouseenter: (e) ->
+    
+    return unless @down
+    @stop(e)
+    
+    @inTable = true
+    
+    [row, col] = @coord(e)
+    
+    if col isnt @column
+      @reset()
+      return
+    
+    #window.getSelection().removeAllRanges() unless @isEditable(e)
+      
+    @first = false
+    
+    @deselect(@lastLeave) if @lastLeaveRow>row
+    @select(e) if row>@end
+    @end = row
+  
+  mouseup: (e) ->
+    @stop(e)
+    @down = false
+    @inTable = false
+    @normal(@start) if @selected.length is 1
+    @vector = ($(s.target).text() for s in @selected)
+  
+  copy: (e, data) ->
+    console.log "copy cells", @tableId, @vector
+    return unless @vector.length
+    console.log "data", data
+    e = data.original
+    e.preventDefault()
+    string = @vector.join ", "
+    e.clipboardData.setData('Text', string)
+    # t = e.clipboardData.getData('Text') # for paste purposes.
+  
+  coord: (e) ->
+    t = $(e.target)
+    p = t.parent()
+    if @isEditable(e)
+      # <div>
+      td = p
+      tr = td.parent()
+    else
+      # <td>
+      td = t
+      tr = p
+    row = tr.index()
+    col = td.index()
+    [row, col]
+  
+  deselectAll: ->
+    return unless @selected.length
+    @normal(s) for s in @selected
+    @selected = []
+  
+  select: (e) ->
+    @highlight e
+    @selected.push e
+    
+  deselect: (e) ->
+    @selected.pop()
+    @normal(e)
+  
+  highlight: (e) ->
+    $(e.target).css background: "rgb(180, 213, 254)"
+  
+  normal: (e) ->
+    $(e.target).css background: ""  # ZZZ Need to revert to what it was?
+    
+  isEditable: (e) -> $(e.target).attr("class") is "editable-table-cell"
+    
+  stop: (e) ->
+    e.preventDefault()
+    e.stopPropagation()
 
 
 class Plot extends Widget

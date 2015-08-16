@@ -611,6 +611,13 @@ class EditableCell
   change: (e) ->
     @done() unless @noChange
   
+  enterVal: (v, dir=1) ->
+    # Interface for demo.
+    @noChange = true
+    @div.click()
+    @div.text v
+    @done(dir)
+  
   done: (dir=0, colDir=0) ->
     v = @div.text()  # @div?
     if v is ""
@@ -801,6 +808,7 @@ class Plot extends Widget
   @handle: "plot"
   
   @initSpec: (id) -> """
+    title: "#{id}"
     width: 300, height: 200
     xlabel: "x", ylabel: "y"
     # xaxis: {min: 0, max: 1}
@@ -816,7 +824,13 @@ class Plot extends Widget
   
   create: (@spec) ->
     
-    {@width, @height, @xlabel, @ylabel, @css} = @spec
+    {@title, @width, @height, @xlabel, @ylabel, @css} = @spec
+    
+    @outer = $ "<div>",
+      css:
+        fontSize: "10pt"
+        textAlign: "center"
+      mouseup: => @select()
     
     @plot = $("#"+@domId())
     @plot.remove() if @plot.length
@@ -828,9 +842,18 @@ class Plot extends Widget
         height: @height ? 200
       mouseup: => @select()
     
+    if @title
+      @caption = $ "<div>",
+        html: @title
+        css:
+          marginBottom: -8
+      @outer.append @caption
+    
+    @outer.append @plot
+    
     @plot.css(@css) if @css
     
-    @appendToCanvas @plot
+    @appendToCanvas @outer
     
     @setVal([[0], [0]])
     

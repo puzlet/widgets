@@ -828,7 +828,6 @@ class Plot extends Widget
     
     @outer = $ "<div>",
       css:
-        fontSize: "10pt"
         textAlign: "center"
       mouseup: => @select()
     
@@ -846,6 +845,7 @@ class Plot extends Widget
       @caption = $ "<div>",
         html: @title
         css:
+          fontSize: "10pt"
           marginBottom: -8
       @outer.append @caption
     

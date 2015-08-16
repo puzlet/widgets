@@ -44,10 +44,10 @@ class Input extends Widget
     @inputContainer = $ "<div>",
       class: "blab-input"
       id: @domId()
-      mouseup: => clickEvent()
+      mouseup: (e) => e.stopPropagation()
     @outer.append @inputContainer
     
-    @outer.click -> clickEvent()
+    @outer.mouseup -> clickEvent()
     
     @textContainer = $ "<div>", class: "input-text-container"
     @outer.append @textContainer
@@ -62,7 +62,7 @@ class Input extends Widget
     @input = $ "<input>",
       type: "number"
       value: @init
-      click: (e) -> e.stopPropagation()
+      mouseup: (e) -> e.stopPropagation()
       change: =>
         @setVal(parseFloat(@input.val()))
         @computeAll()
@@ -129,7 +129,9 @@ class Slider extends Widget
     @sliderContainer = $ "<div>",
       class: "puzlet-slider"
       id: @domId()
-      mouseup: (e) => e.stopPropagation() 
+      mousedown: (e) => $.event.trigger "clickInputWidget"
+      mouseup: (e) =>
+        e.stopPropagation() 
       #click: => clickEvent()
     @outer.append @sliderContainer
         
@@ -157,6 +159,8 @@ class Slider extends Widget
       max: @max
       step: @step
       value: @init
+      mouseup: (e) ->
+        #e.stopPropagation()
       slide: (e, ui) =>
         sliding = true
         @setVal(ui.value)
@@ -185,6 +189,7 @@ class Table extends Widget
   
   @initSpec: (id, v) ->
     """
+      title: "#{id}"
       headings: []  # ["Column 1", "Column 2"]
       widths: 100  #[100, 100]
       pos: 1, order: 1
@@ -201,7 +206,7 @@ class Table extends Widget
   
   create: (@spec) ->
     
-    {@headings, @widths, @colCss, @css, @precision} = @spec
+    {@title, @headings, @widths, @colCss, @css, @precision} = @spec
     
     @table = $ "#"+@domId()
     @table.remove() if @table.length
@@ -210,6 +215,9 @@ class Table extends Widget
       class: "widget"
       mouseup: =>  # Use mouseup instead of click so can control propagation.
         @select()
+        
+    @caption = $("<caption>", text: @title) if @title
+    @table.append @caption
     
     @table.css(@css) if @css
     
@@ -524,6 +532,7 @@ class EditableCell
         #e.preventDefault()
         setTimeout (=> @selectElementContents @div[0]), 0
       
+      mousedown: (e) => $.event.trigger "clickInputWidget"
       click: (e) =>
         e.stopPropagation()
         @click(e)
@@ -669,7 +678,6 @@ class TableCellSelector
     
   mousedown: (e) ->
     
-    console.log "mousedown"
     @stop(e)
     
     @deselectAll()

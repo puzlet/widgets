@@ -533,7 +533,7 @@ class EditableCell
         setTimeout (=> @selectElementContents @div[0]), 0
       
       mousedown: (e) => $.event.trigger "clickInputWidget"
-      mouseup: (e) => e.stopPropagation()
+      #mouseup: (e) => e.stopPropagation()
       click: (e) =>
         e.stopPropagation()
         @click(e)

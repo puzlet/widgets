@@ -944,5 +944,7 @@ class AxesLabels
       marginTop: (@yaxisLabel.width() / 2 - 10) + "px"
 
 
-Widget.register [Input, Slider, Table, Plot]
+
+$blab.baseWidgets = [Input, Slider, Table, Plot]
+#Widget.register [Input, Slider, Table, Plot]
 

@@ -1,15 +1,19 @@
 #!vanilla
+#!no-math-sugar
+
+# TODO: define core widget above $blab def
+# Css should be property of Widget?
+
+return unless $blab
 
 Widget = $blab.Widget
-
-console.log "**** RESOURCES!(4)", $blab.resources
-
-$blab.resources.addAndLoad {url: "/puzlet/widgets/input2/style.css"}
 
 class Input2 extends Widget
   
   @handle: "input2"
   #@cName: "Input"
+  
+  @cssUrl: "/puzlet/widgets/input2/style.css"
   
   @initVal: 0
   

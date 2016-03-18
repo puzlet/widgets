@@ -7,6 +7,8 @@ class Input
   
   constructor: (@spec) ->
     
+    console.log "***** Input"
+    
     {@container, @init, @prompt, @unit, @align, change} = @spec
     
     @promptContainer = $ "<div>", class: "input-prompt-container"
@@ -55,9 +57,9 @@ unless Widget
 
 class InputWidget extends Widget
   
-  @handle: "input2"
+  @handle: "input"
   
-  @cssUrl: "/puzlet/widgets/input2/style.css"
+  @cssUrl: "/puzlet/widgets/input/style.css"
   
   @initVal: 0
   

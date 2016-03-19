@@ -7,8 +7,6 @@ class Input
   
   constructor: (@spec) ->
     
-    console.log "***** Input"
-    
     {@container, @init, @prompt, @unit, @align, change} = @spec
     
     @promptContainer = $ "<div>", class: "input-prompt-container"
@@ -37,19 +35,20 @@ class Input
     @input.css(textAlign: @align) if @align
     
     @inputContainer.append @input
+    
+    # Stop mouseup propagation (specific to Blabr?)
+    @input.mouseup (e) -> e.stopPropagation()
+    @inputContainer.mouseup (e) -> e.stopPropagation()
   
   change: (f) -> @input.change f
   
-  mouseup: (f) -> @input.mouseup f
-
   val: -> @input.val()
 
 
 Widget = $blab?.Widget
-
 unless Widget
-  window.Input = Input
-  # TODO: improve export approach.
+  window.$blab ?= {}
+  $blab.Input = Input
   return
 
 
@@ -57,36 +56,27 @@ unless Widget
 
 class InputWidget extends Widget
   
-  @handle: "input"
+  @handle: "input2"
   
-  @cssUrl: "/puzlet/widgets/input/style.css"
+  @source: true
   
   @initVal: 0
   
+  @cssUrl: "/puzlet/widgets/input/style.css"
+  
   @initSpec: (id) -> """
-    init: #{InputWidget.initVal}
+    init: #{@initVal}
     prompt: "#{id}:"
     unit: ""
     align: "left"
     pos: 1, order: 1
   """
   
-  @compute: (id, v...) ->
-    @getVal(id, v...) ? @initVal
-  
   create: (@spec) ->
     
     {@init, @prompt, @unit, @align} = @spec
     
-    @inputContainer = $("#"+@domId())
-    if @inputContainer.length
-      # TODO: Need to destroy input?
-      @outer = @inputContainer.parent()
-      @outer?.remove()
-    
-    @outer = $ "<div>",
-      class: "input-container"
-      mouseup: => @select()
+    @outer = $ "<div>", class: "input-container"
       
     @input = new Input
       container: @outer
@@ -97,25 +87,10 @@ class InputWidget extends Widget
       change: =>
         @setVal(parseFloat(@input.val()))
         @computeAll()
-      
-    @input.mouseup (e) -> e.stopPropagation()
-    
-    @inputContainer = @input.inputContainer
-    @inputContainer.attr id: @domId()
-    @inputContainer.mouseup (e) => e.stopPropagation()
     
     @appendToCanvas @outer
     
     @setVal @init
-  
-  initialize: -> @setVal @init
-  
-  setVal: (v) ->
-    @value = v
-  
-  getVal: ->
-    @setUsed()
-    @value
 
 
 Widget.register [InputWidget]

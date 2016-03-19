@@ -1,6 +1,6 @@
 container = $ "#input"
 
-input = new Input
+input = new $blab.Input
   container: container
   prompt: "Input"
   unit: "Hz"

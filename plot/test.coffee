@@ -1,6 +1,6 @@
 container = $ "#plot"
 
-plot = new $blab.Plot
+plot = new $blab.components.Plot
   container: container
   title: "TEST PLOT"
   width: 500, height: 300

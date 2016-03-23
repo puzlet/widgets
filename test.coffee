@@ -10,4 +10,3 @@ display = -> $("#result").html("Input value = " + input.val())
 
 display()
 input.change -> display()
-  

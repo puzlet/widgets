@@ -1,6 +1,6 @@
 container = $ "#slider"
 
-slider = new $blab.Slider
+slider = new $blab.components.Slider
   container: container
   prompt: "x"
   unit: "Hz"

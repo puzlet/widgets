@@ -3,6 +3,7 @@ resources
     "/puzlet/math/puzlet-math.js"
     "/puzlet/ace/ace.js"
     "/puzlet/puzlet/js/render.js"
-    "component.coffee"
+    "../style.css"
+    "../component.coffee"
     "test.coffee"
   ]

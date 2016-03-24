@@ -10,7 +10,7 @@ class Plot
     
     {@container, @title, @width, @height, @xlabel, @ylabel, @css} = @spec
     
-    #@outer = $ "<div>", class: "plot-container"
+    @outer = $ "<div>", class: "plot-container"
     
     @plot = $ "<div>",
       class: "puzlet-plot"
@@ -20,23 +20,19 @@ class Plot
     
     @displayTitle(@title) if @title
     
-    @container.append @plot
-#    @outer.append @plot
+    @outer.append @plot
     
     @plot.css(@css) if @css
     
-    #@container.append @outer
+    @container.append @outer
   
-  destroy: ->
-    @caption.remove()
-    @plot.remove()  # ZZZ needed?  remove outer ok?
+  destroy: -> @plot.remove()  # ZZZ needed?  remove outer ok?
   
   displayTitle: (title) ->
     @caption = $ "<div>",
-      class: "plot3-title"
+      class: "plot-title"
       html: title
-    @container.append @caption
-#    @outer.append @caption
+    @outer.append @caption
   
   setVal: (v) ->
     
@@ -88,5 +84,4 @@ class Plot
 
 window.$blab ?= {}
 $blab.components ?= {}
-$blab.components.puzlet ?= {}
-$blab.components.puzlet.Plot = Plot
+$blab.components.Plot = Plot

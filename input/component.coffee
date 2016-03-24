@@ -13,7 +13,7 @@ class Input
     @promptContainer = $ "<div>", class: "input-prompt-container"
     @container.append @promptContainer
     
-    @inputPrompt = $ "<div>", class: "input-prompt"
+    @inputPrompt = $ "<div>", class: "input-prompt-2"
     @promptContainer.append @inputPrompt
     @inputPrompt.append @prompt
     
@@ -48,4 +48,5 @@ class Input
 
 window.$blab ?= {}
 $blab.components ?= {}
-$blab.components.Input = Input
+$blab.components.puzlet ?= {}  # Namespace, so don't clash with blabr base component.
+$blab.components.puzlet.Input = Input

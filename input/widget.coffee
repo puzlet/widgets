@@ -5,7 +5,7 @@
 
 Widget = $blab.Widget
 
-class Input extends Widget
+class Input2 extends Widget
   
   @handle: "input2"
   
@@ -27,7 +27,7 @@ class Input extends Widget
   
     @outer = $ "<div>", class: "input-container"
     
-    @input = new $blab.components.Input
+    @input = new $blab.components.puzlet.Input
       container: @outer
       init: @init
       prompt: @prompt
@@ -43,4 +43,4 @@ class Input extends Widget
 
 # TODO: need a way to stop this if compiling widget.coffee.
 # e.g., temporarily redefine Widget.register to accumulate string?
-Widget.register [Input]
+Widget.register [Input2]

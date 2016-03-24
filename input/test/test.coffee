@@ -1,6 +1,6 @@
 container = $ "#input"
 
-input = new $blab.components.Input
+input = new $blab.components.puzlet.Input
   container: container
   prompt: "Input"
   unit: "Hz"

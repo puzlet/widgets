@@ -11,8 +11,9 @@
   text-align: right;
 }
 
-.input-prompt {
+.input-prompt-2 {
   padding-right: 10px;
+  color: magenta;
 }
 
 .input-text-container {

@@ -10,7 +10,7 @@ input = new components.Slider
 
 plot = new components.Plot
   container: $("#plot")
-  title: "TEST PLOT"
+  title: "TEST PLOT, $f(x)$"
   width: 500, height: 300
   xlabel: "x", ylabel: "y"
   # xaxis: {min: 0, max: 1}
